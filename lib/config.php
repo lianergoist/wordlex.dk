@@ -1,8 +1,14 @@
 <?php
 // lib/config.php - fælles konfiguration for spil, ordbog og admin.
 //
-// Miljøet afgøres af hvor koden ligger: dev-kopien ligger under
-// /var/www/rpix.dk/, den rigtige side under /var/www/wordlex.dk/.
+// Miljøet afgøres af hvor koden ligger:
+//   dev  - /var/www/rpix.dk/wordlex.dk  (https://rpix.dk/wordlex.dk/, dev-databaser)
+//   test - /var/www/test.wordlex.dk     (https://test.wordlex.dk/, de rigtige data)
+//   live - /var/www/wordlex.dk          (wordlex.dk + w5./w6.wordlex.dk, de rigtige data)
+// Test og live deler databaser, så alt hvad spillerne laver på test-siden
+// er med, når den nye version overtager wordlex.dk.
+
+const LIVE_DBS = ['shared' => 'wordlex', 5 => 'wordlex5_v2', 6 => 'wordlex6_v2'];
 
 if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
     define('WORDLEX_ENV', 'dev');
@@ -10,17 +16,23 @@ if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
     define('VARIANT_DBS', [5 => 'wordlex5_dev', 6 => 'wordlex6_dev']);
     define('COOKIE_DOMAIN', '');           // samme host for spil og ordbog
     define('SITE_URL', 'https://rpix.dk/wordlex.dk/');
-    define('WIKI_URL', SITE_URL . 'ord/');
+    define('GAME_URLS', [5 => SITE_URL . 'w5/', 6 => SITE_URL . 'w6/']);
+} elseif (strpos(__DIR__, '/var/www/test.wordlex.dk/') === 0) {
+    define('WORDLEX_ENV', 'test');
+    define('SHARED_DB', LIVE_DBS['shared']);
+    define('VARIANT_DBS', [5 => LIVE_DBS[5], 6 => LIVE_DBS[6]]);
+    define('COOKIE_DOMAIN', '');
+    define('SITE_URL', 'https://test.wordlex.dk/');
     define('GAME_URLS', [5 => SITE_URL . 'w5/', 6 => SITE_URL . 'w6/']);
 } else {
     define('WORDLEX_ENV', 'live');
-    define('SHARED_DB', 'wordlex');
-    define('VARIANT_DBS', [5 => 'wordlex5', 6 => 'wordlex6']);
+    define('SHARED_DB', LIVE_DBS['shared']);
+    define('VARIANT_DBS', [5 => LIVE_DBS[5], 6 => LIVE_DBS[6]]);
     define('COOKIE_DOMAIN', '.wordlex.dk'); // login deles mellem w5., w6. og wordlex.dk
     define('SITE_URL', 'https://wordlex.dk/');
-    define('WIKI_URL', SITE_URL . 'ord/');
     define('GAME_URLS', [5 => 'https://w5.wordlex.dk/', 6 => 'https://w6.wordlex.dk/']);
 }
+define('WIKI_URL', SITE_URL . 'ord/');
 
 // Antal forsøg pr. ordlængde
 const VARIANT_ROWS = [5 => 6, 6 => 7];

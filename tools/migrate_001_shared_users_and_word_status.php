@@ -5,6 +5,9 @@
 //   php tools/migrate_001_shared_users_and_word_status.php dev  | mysql
 //   php tools/migrate_001_shared_users_and_word_status.php live | mysql
 //
+// 'live' kører på kopier af de gamle databaser (wordlex5 -> wordlex5_v2,
+// wordlex6 -> wordlex6_v2), så den gamle side kan køre videre uændret.
+//
 // Stopper den undervejs, kan den fortsætte fra et trin (se "-- TRIN:" i
 // outputtet), fx:
 //   php tools/migrate_001_shared_users_and_word_status.php dev remap | mysql
@@ -23,6 +26,7 @@
 //   5. Omdøber de gamle users-tabeller til users_old (backup).
 //   6. Erstatter words.is_common med words.status (common/rare/deleted).
 //   7. Gør lianergoist (id 3) til admin.
+//   8. Kun live: nulstiller leaderboardet (nyt pointsystem).
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -32,7 +36,7 @@ if (PHP_SAPI !== 'cli') {
 $env = $argv[1] ?? '';
 $names = [
     'dev'  => ['wordlex_dev', 'wordlex5_dev', 'wordlex6_dev'],
-    'live' => ['wordlex', 'wordlex5', 'wordlex6'],
+    'live' => ['wordlex', 'wordlex5_v2', 'wordlex6_v2'],
 ];
 if (!isset($names[$env])) {
     fwrite(STDERR, "Brug: php " . basename(__FILE__) . " dev|live [starttrin]\n");
@@ -154,6 +158,17 @@ UPDATE `$D6`.words SET status = IF(is_common = 1, 'common', 'rare');
 ALTER TABLE `$D6`.words DROP COLUMN is_common;
 
 SQL;
+
+// Nyt pointsystem = nyt leaderboard (dev blev nulstillet separat)
+if ($env === 'live') {
+    $sql .= <<<SQL
+
+-- TRIN: reset_leaderboard
+UPDATE `$D5`.leaderboard SET games_played = 0, total_score = 0, avg_score = 0, high_score = 0, hints_used = 0;
+UPDATE `$D6`.leaderboard SET games_played = 0, total_score = 0, avg_score = 0, high_score = 0, hints_used = 0;
+
+SQL;
+}
 
 if ($fromStep !== null) {
     $pos = strpos($sql, "-- TRIN: $fromStep\n");
