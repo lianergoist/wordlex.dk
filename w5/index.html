@@ -448,10 +448,9 @@
         let gameOver = false;
         let boardState = Array(6).fill().map(() => Array(5).fill(''));
 
-        // NB: point beregnes ikke længere her - de kommer autoritativt fra api.php
-        // (entropi-baseret scoring). Denne bruges kun til at afgøre om en grøn
-        // brik i en NY række er "ny" information eller en gentagelse fra en
-        // tidligere række, så beskeden ("Du fik X nye grønne...") bliver korrekt.
+        // NB: point beregnes ikke her - de kommer autoritativt fra api.php.
+        // Denne bruges kun til at afgøre om en grøn brik i en NY række er
+        // "ny" eller en gentagelse, så beskeden ("Du fik X nye grønne...") bliver korrekt.
         let greenPositionsKnown = [false, false, false, false, false];
 
         let discoveredGreen = new Set();
@@ -777,7 +776,7 @@
 					}, (col * 150) + 250);
 				});
 
-				// Point kommer nu 100% fra serveren (entropi-baseret) - klienten
+				// Point kommer 100% fra serveren - klienten
 				// regner intet selv, den spejler blot api.php's autoritative tal.
 				const guessScore = data.guess_score;
 				score = data.total_score;
@@ -838,44 +837,6 @@
 
         /* --- HINT SYSTEM --- */
 
-		// Bygger det filter (mønster + kendte bogstaver), som ordlisten
-		// (og nu også optællingen af den) skal matches imod. Udtrukket til
-		// egen funktion, så både prisberegningen og selve visningen bruger
-		// nøjagtig samme grundlag.
-		function buildWordFilterPayload() {
-			let pattern = ['_', '_', '_', '_', '_'];
-			let notAtPos = [[], [], [], [], []];
-
-			for (let r = 0; r < currentRow; r++) {
-				for (let c = 0; c < 5; c++) {
-					const tile = document.getElementById(`tile-${r}-${c}`);
-					if (!tile) continue;
-
-					const letter = tile.innerText.trim();
-					const state = tile.dataset.state;
-
-					if (state === 'correct') {
-						pattern[c] = letter;
-					} else if (state === 'present') {
-						if (letter && !notAtPos[c].includes(letter)) {
-							notAtPos[c].push(letter);
-						}
-					}
-				}
-			}
-
-			// NB: rækken der er ved at blive udfyldt (currentRow) er IKKE
-			// indsendt endnu, så dens bogstaver er ikke bekræftede og må
-			// ikke bruges som "korrekt på denne plads"-filter mod ordlisten.
-
-			return {
-				pattern: pattern.join(''),
-				absent: Array.from(discoveredAbsent),
-				present: Array.from(discoveredYellow),
-				not_at_pos: notAtPos
-			};
-		}
-
 		async function handleHintRequest() {
 			if (gameOver) return;
 
@@ -885,14 +846,12 @@
 				return;
 			}
 
-			const payload = { ...buildWordFilterPayload(), game_id: currentGameId };
+			// Serveren kender alle gæt og bygger selv filteret til både pris og liste.
+			const payload = { game_id: currentGameId };
 
-			// Prisen beregnes nu 100% server-side (samme formel som før, bare
-			// flyttet til api.php) - denne kaldsrunde trækker IKKE point endnu,
-			// den viser blot en forhåndsvisning. Selve betalingen sker i
-			// get_matching_words, når brugeren bekræfter.
+			// Forhåndsvisning af prisen - selve betalingen sker i get_matching_words.
 			let matchCount = null;
-			let price = 15;
+			let price = 25;
 			try {
 				const res = await fetch('api.php?action=count_matching_words', {
 					method: 'POST',
@@ -907,7 +866,7 @@
 			}
 
 			const countText = (matchCount !== null)
-				? `<p style="margin-top:6px; font-size:0.85rem; color:#666;">Der er ${matchCount} ord, der matcher dine fundne bogstaver.</p>`
+				? `<p style="margin-top:6px; font-size:0.85rem; color:#666;">Der er ${matchCount} mulige løsningsord tilbage.</p>`
 				: '';
 
 			showModal("Vis Matchende Ord", 
@@ -1205,7 +1164,7 @@
 		}
 
 		function saveLocalStats(won, finalScore, hints) {
-			const stats = JSON.parse(localStorage.getItem('wordle_stats')) || { 
+			const stats = JSON.parse(localStorage.getItem('wordle_stats_v2')) || { 
 				gamesPlayed: 0, 
 				totalScore: 0, 
 				hintsUsed: 0, 
@@ -1221,12 +1180,12 @@
 				stats.highScore = finalScore;
 			}
 
-			localStorage.setItem('wordle_stats', JSON.stringify(stats));
+			localStorage.setItem('wordle_stats_v2', JSON.stringify(stats));
 		}
 
 		function clearLocalStats() {
 			if (confirm("Er du sikker på, at du vil slette dine lokale statistikdata for Gæst?")) {
-				localStorage.removeItem('wordle_stats');
+				localStorage.removeItem('wordle_stats_v2');
 				openStatsModal(); // Genindlæs modalen så ændringen ses med det samme
 			}
 		}
@@ -1235,7 +1194,7 @@
 			dropdownEl.classList.remove('active');
 
 			// 1. Hent lokale stats fra browseren (Gæst)
-			const localStats = JSON.parse(localStorage.getItem('wordle_stats')) || { 
+			const localStats = JSON.parse(localStorage.getItem('wordle_stats_v2')) || { 
 				gamesPlayed: 0, 
 				totalScore: 0, 
 				hintsUsed: 0, 
@@ -1323,7 +1282,7 @@
 					</ul>
 
 					<h4 style="margin-top: 12px; margin-bottom: 6px; font-size: 0.95rem; color: #1a1a1a;">Wordle med Point:</h4>
-					<p>I WordleX optjener du point for hver grøn og gul brik, du gætter, og du betaler med point for at få vist ordlisten. Prisen afhænger at antallet af allerede fundne bogstaver.</p>
+					<p>Du får point for hver ny grøn og gul brik - jo tidligere, jo flere. Alle 5 rigtige i første forsøg giver 1.000 point. En gul er halvt så meget værd som en grøn. Ordlisten koster point, og prisen stiger jo færre mulige ord der er tilbage.</p>
 					
 					<h4 style="margin-top: 12px; margin-bottom: 6px; font-size: 0.95rem; color: #1a1a1a;">Brug for et tip?</h4>
 					<p>Start gerne med et ord med mange vokaler. Hvis du går i stå, kan du benytte <img src="images/lightbulb.png" alt="Hint" class="inline-icon">-ikonet til at få hints mod point.</p>
