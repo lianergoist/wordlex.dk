@@ -60,17 +60,6 @@ $games = [
 	<link rel="icon" href="favicon.ico">
 	<link rel="stylesheet" href="ord/ord.css">
 	<style>
-		/* Toolbar med menu (samme opbygning som i spillene) */
-		.toolbar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 6px 12px; background: #fff; border-bottom: 1px solid var(--color-line); }
-		.toolbar-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; color: inherit; }
-		.toolbar-title:hover { text-decoration: none; }
-		.toolbar-right { position: relative; display: flex; align-items: center; gap: 6px; }
-		.toolbar-user { font-size: 0.8rem; font-weight: 600; color: var(--color-focus); background: none; border: none; cursor: pointer; }
-		.menu-btn { display: flex; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; }
-		.dropdown { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 180px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; z-index: 20; }
-		.dropdown.active { display: block; }
-		.dropdown button, .dropdown a { display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; border-bottom: 1px solid #f0f0f0; font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--color-text); cursor: pointer; }
-		.dropdown a:hover, .dropdown button:hover { background: #f5f5f8; text-decoration: none; }
 		.help h4 { margin: 14px 0 4px; font-size: 0.95rem; }
 		.help p, .help li { font-size: 0.9rem; }
 		.help ul { padding-left: 18px; }
@@ -112,20 +101,12 @@ $games = [
 		}
 	</style>
 </head>
-<body>
+<body data-page="forside">
 	<header class="toolbar">
-		<a class="toolbar-title" href="<?= h(SITE_URL) ?>">WordleX</a>
-		<div class="toolbar-right">
-			<button class="toolbar-user" id="toolbar-user">Gæst</button>
-			<button class="menu-btn" id="menu-btn" title="Menu" aria-haspopup="true" aria-expanded="false"><img src="w5/images/more_vert.svg" alt="Menu"></button>
-			<nav class="dropdown" id="menu">
-				<button id="menu-login">Log ind / Opret</button>
-				<a href="<?= h(WIKI_URL) ?>">Ordbog</a>
-				<a href="<?= h(SITE_URL) ?>statistik.php">Statistik</a>
-				<button id="menu-help">Hjælp &amp; regler</button>
-				<button id="menu-about">Om WordleX</button>
-			</nav>
+		<div class="toolbar-left">
+			<h1><a href="<?= h(SITE_URL) ?>">WordleX</a></h1>
 		</div>
+		<div class="toolbar-right" id="nav"></div>
 	</header>
 
 	<div class="hero">
@@ -231,36 +212,14 @@ $games = [
 	<script>window.WORDLEX_API = 'ord/api.php';</script>
 	<script src="ord/ord.js"></script>
 	<script>
-		const menu = document.getElementById('menu');
-		const menuBtn = document.getElementById('menu-btn');
-
-		function toggleMenu(open) {
-			menu.classList.toggle('active', open);
-			menuBtn.setAttribute('aria-expanded', open);
-		}
-		menuBtn.addEventListener('click', e => { e.stopPropagation(); toggleMenu(!menu.classList.contains('active')); });
-		document.addEventListener('click', e => { if (!menu.contains(e.target)) toggleMenu(false); });
-
 		function showTemplate(id, extraClass = '') {
-			toggleMenu(false);
 			showModal(document.getElementById(id).innerHTML, extraClass);
 		}
-		document.getElementById('menu-help').onclick = () => showTemplate('help-text', 'modal-wide');
-		document.getElementById('menu-about').onclick = () => showTemplate('about-text');
-
-		loadMe().then(me => {
-			const userBtn = document.getElementById('toolbar-user');
-			const loginBtn = document.getElementById('menu-login');
-			if (me.logged_in) {
-				userBtn.textContent = me.username;
-				userBtn.onclick = e => { e.stopPropagation(); toggleMenu(true); };
-				loginBtn.textContent = 'Log ud';
-				loginBtn.onclick = () => { toggleMenu(false); logout(); };
-			} else {
-				userBtn.onclick = openLogin;
-				loginBtn.onclick = () => { toggleMenu(false); openLogin(); };
-			}
-		});
+		window.EXTRA_MENU_ITEMS = [
+			{ label: 'Hjælp & regler', action: () => showTemplate('help-text', 'modal-wide') },
+			{ label: 'Om WordleX', action: () => showTemplate('about-text') }
+		];
+		loadMe();
 	</script>
 
 	<footer>

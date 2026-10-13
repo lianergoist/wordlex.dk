@@ -59,17 +59,61 @@ async function loadMe() {
 	return me;
 }
 
+const MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="#1f1f1f" aria-hidden="true"><path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"/></svg>';
+
+/**
+ * Bygger højre side af toolbaren: brugernavn og en menu. <body data-page="...">
+ * angiver den aktuelle side, som udelades fra menuen. En side kan tilføje egne
+ * punkter nederst via window.EXTRA_MENU_ITEMS = [{ label, action }].
+ */
 function renderHeader() {
-	const nav = document.getElementById('nav');
-	if (!nav) return; // forsiden har sin egen menu
-	const games = Object.entries(me.game_urls || {})
-		.map(([len, url]) => `<a href="${esc(url)}">Spil ${esc(len)}</a>`).join('');
-	const admin = me.is_admin ? '<a href="admin.html">Admin</a>' : '';
-	const account = me.logged_in
-		? `<span class="user-name">${esc(me.username)}</span><button class="link-btn" onclick="logout()">Log ud</button>`
-		: '<button class="link-btn" onclick="openLogin()">Log ind / Opret</button>';
-	nav.innerHTML = `<a href="index.html">Ordbog</a>${games}${admin}${account}`;
+	const right = document.getElementById('nav');
+	if (!right) return;
+	const home = document.getElementById('home-link');
+	if (home && me.site_url) home.href = me.site_url;
+
+	const page = document.body.dataset.page;
+	const links = [
+		['forside', 'Forside', me.site_url],
+		['ordbog', 'Ordbog', me.wiki_url],
+		['spil5', 'Spil WordleX 5', me.game_urls?.[5]],
+		['spil6', 'Spil WordleX 6', me.game_urls?.[6]],
+		['statistik', 'Statistik', me.site_url && me.site_url + 'statistik.php'],
+	];
+	if (me.is_admin) links.push(['admin', 'Admin', me.wiki_url + 'admin.html']);
+
+	const items = [
+		{ label: me.logged_in ? 'Log ud' : 'Log ind / Opret', action: me.logged_in ? logout : openLogin },
+		...links.filter(([key, , url]) => key !== page && url).map(([, label, url]) => ({ label, url })),
+		...(window.EXTRA_MENU_ITEMS || [])
+	];
+
+	right.innerHTML = `
+		<button class="toolbar-user" id="toolbar-user" title="${esc(me.username || 'Log ind')}">${esc(me.logged_in ? me.username : 'Gæst')}</button>
+		<button class="menu-btn" id="menu-btn" title="Menu" aria-haspopup="true" aria-expanded="false">${MENU_ICON}</button>
+		<nav class="dropdown" id="menu"></nav>`;
+	const menu = right.querySelector('#menu');
+	const menuBtn = right.querySelector('#menu-btn');
+	const toggle = open => { menu.classList.toggle('active', open); menuBtn.setAttribute('aria-expanded', open); };
+
+	items.forEach(item => {
+		const el = document.createElement(item.url ? 'a' : 'button');
+		el.textContent = item.label;
+		if (item.url) el.href = item.url;
+		else el.addEventListener('click', () => { toggle(false); item.action(); });
+		menu.appendChild(el);
+	});
+
+	menuBtn.addEventListener('click', e => { e.stopPropagation(); toggle(!menu.classList.contains('active')); });
+	right.querySelector('#toolbar-user').addEventListener('click', e => {
+		e.stopPropagation();
+		if (me.logged_in) toggle(true); else openLogin();
+	});
+	closeMenuOnOutsideClick = e => { if (!menu.contains(e.target)) toggle(false); };
 }
+
+let closeMenuOnOutsideClick = () => {};
+document.addEventListener('click', e => closeMenuOnOutsideClick(e));
 
 function showModal(html, extraClass = '') {
 	closeModal();

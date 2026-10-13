@@ -140,6 +140,8 @@ if ($action === 'my_status') {
         'can_edit' => $permission['can_edit'],
         'reason' => $permission['reason'],
         'game_urls' => GAME_URLS,
+        'site_url' => SITE_URL,
+        'wiki_url' => WIKI_URL,
         'min_comment_length' => MIN_COMMENT_LENGTH,
         'min_games' => MIN_GAMES_TO_EDIT,
     ]);

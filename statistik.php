@@ -135,15 +135,13 @@ foreach (['24h' => 'Seneste 24 timer', '7d' => 'Seneste 7 dage'] as $period => $
 		}
 	</style>
 </head>
-<body>
-	<header>
-		<h1><a href="<?= h(SITE_URL) ?>">WordleX</a></h1>
-		<nav>
-			<a href="<?= h(SITE_URL) ?>">Forside</a>
-			<a href="<?= h(GAME_URLS[5]) ?>">Spil 5</a>
-			<a href="<?= h(GAME_URLS[6]) ?>">Spil 6</a>
-			<a href="<?= h(WIKI_URL) ?>">Ordbog</a>
-		</nav>
+<body data-page="statistik">
+	<header class="toolbar">
+		<div class="toolbar-left">
+			<a class="home-link" id="home-link" href="<?= h(SITE_URL) ?>" title="Til forsiden" aria-label="Til forsiden"></a>
+			<h1><a href="<?= h(SITE_URL) ?>statistik.php">WordleX Statistik</a></h1>
+		</div>
+		<div class="toolbar-right" id="nav"></div>
 	</header>
 
 	<main class="viz-root">
@@ -205,6 +203,9 @@ foreach (['24h' => 'Seneste 24 timer', '7d' => 'Seneste 7 dage'] as $period => $
 		<?php endif; ?>
 	</main>
 
+	<script>window.WORDLEX_API = 'ord/api.php';</script>
+	<script src="ord/ord.js"></script>
+	<script>loadMe();</script>
 	<?php if (!$error): ?>
 	<script>
 		const DATA = <?= json_encode($series, JSON_UNESCAPED_UNICODE) ?>;

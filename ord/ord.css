@@ -23,14 +23,24 @@ body {
 a { color: var(--color-focus); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-header {
-	display: flex; justify-content: space-between; align-items: center; gap: 12px;
-	padding: 8px 16px; background: #fff; border-bottom: 1px solid var(--color-line);
-}
-header h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; }
-header h1 a { color: inherit; }
-header nav { display: flex; align-items: center; gap: 14px; font-size: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
-.user-name { font-weight: 600; color: var(--color-muted); }
+/* Fælles toolbar for forside, ordbog og statistik (samme opbygning som i spillene):
+   hus-ikon og titel til venstre, brugernavn og menu til højre. Menuen bygges i ord.js. */
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 12px; background: #fff; border-bottom: 1px solid var(--color-line); }
+.toolbar-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.toolbar h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; white-space: nowrap; }
+.toolbar h1 a { color: inherit; }
+.toolbar h1 a:hover { text-decoration: none; }
+.home-link { display: block; width: 32px; height: 32px; margin-left: -4px; border-radius: 4px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 -960 960 960' width='24' fill='%231f1f1f'%3E%3Cpath d='M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z'/%3E%3C/svg%3E") center no-repeat; }
+.home-link:hover { background-color: #f0f0f5; }
+.toolbar-right { position: relative; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.toolbar-user { min-width: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--color-focus); background: none; border: none; cursor: pointer; }
+.menu-btn { display: flex; flex-shrink: 0; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; }
+.menu-btn:hover { background: #f0f0f5; }
+.dropdown { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 190px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; z-index: 20; }
+.dropdown.active { display: block; }
+.dropdown button, .dropdown a { display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; border-bottom: 1px solid #f0f0f0; font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--color-text); cursor: pointer; }
+.dropdown a:hover, .dropdown button:hover { background: #f5f5f8; text-decoration: none; }
+.dropdown hr { border: none; border-top: 4px solid #f5f5f8; margin: 0; }
 
 main { max-width: 820px; margin: 0 auto; padding: 20px 16px 48px; }
 section { margin-bottom: 28px; }
@@ -103,6 +113,6 @@ textarea { width: 100%; min-height: 80px; resize: vertical; }
 
 @media (max-width: 560px) {
 	.columns { grid-template-columns: 1fr; }
-	header { flex-direction: column; align-items: flex-start; gap: 4px; }
-	header nav { justify-content: flex-start; }
+	.toolbar h1 { font-size: 1.1rem; }
+	.toolbar-user { max-width: 90px; }
 }
