@@ -21,7 +21,7 @@
 				<span class="badge badge-rare">Sjælden</span> accepteres som gæt, men er aldrig løsningsord &nbsp;
 				<span class="badge badge-deleted">Slettet</span> accepteres ikke som gæt
 			</p>
-			<p class="muted">Har du en konto og har spillet mindst 10 spil, kan du ændre et ords status eller foreslå nye ord. Du skal altid begrunde ændringen, og alle ændringer gemmes, så man kan se hvem der har ændret hvad og hvorfor.</p>
+			<p class="muted"><span id="who-can-edit">Har du en konto</span>, kan du ændre et ords status eller foreslå nye ord. Du skal altid begrunde ændringen, og alle ændringer gemmes, så man kan se hvem der har ændret hvad og hvorfor.</p>
 		</section>
 
 		<section>
@@ -134,7 +134,11 @@
 			}
 		}
 
-		loadMe();
+		loadMe().then(me => {
+			if (me.min_games > 0) {
+				document.getElementById('who-can-edit').textContent = `Har du en konto og har spillet mindst ${me.min_games} spil`;
+			}
+		});
 		loadList(true);
 		loadMissing();
 	</script>

@@ -66,9 +66,9 @@
         flex-shrink: 0; 
     }
     
-    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
     h1 { font-size: clamp(1.1rem, 2vh, 1.4rem); font-weight: 800; letter-spacing: -0.5px; }
-    h1 a { color: inherit; text-decoration: none; }
+    .home-link { display: flex; padding: 4px; margin-left: -4px; border-radius: 4px; }
     .score-badge { background: #f0f0f5; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: #555; }
     .user-status { font-size: 0.8rem; color: #2196f3; font-weight: 600; cursor: pointer; }
 
@@ -334,7 +334,8 @@
 
     <header>
         <div class="header-left">
-            <h1><a id="home-link" href="https://wordlex.dk/" title="Til forsiden">WordleX 6</a></h1>
+            <a id="home-link" class="home-link" href="https://wordlex.dk/" title="Til forsiden"><img src="images/home.svg" alt="Forside"></a>
+            <h1>WordleX 6</h1>
             <!-- <div class="score-badge">Point: <span id="current-score">0</span></div> -->
             <div class="score-badge"><span id="current-score">0</span></div>
             <div class="user-status" id="user-status" onclick="openLoginModal()">Gæst</div>
@@ -347,8 +348,6 @@
 				<button id="menu-login-btn" onclick="openLoginModal()">Log ind / Opret</button>
 				<button onclick="openLeaderboardModal()">Top-100</button>
 				<button onclick="openStatsModal()">Statistik & Point</button>
-				<button onclick="openWModal()">Alm. WordleX</button>
-				<button onclick="window.location.href = document.getElementById('home-link').href">Forside</button>
 				<button onclick="openWiki()">Ordbog</button>
 				<button onclick="openHelpModal()">Hjælp & Regler</button>
 				<button onclick="openAboutModal()">Om WordleX 6</button>
@@ -1211,7 +1210,6 @@
             dropdownEl.classList.remove('active');
             showModal("Om WordleX 6", "<p>Wordle med 6 bogstaver og 7 forsøg, udvidet med point og Top-100.</p><br><p>Idé og vibe-kode: Thomas Jensen</p><br><p>Kontakt: <a href='mailto:wordlex@rpix.dk'>wordlex@rpix.dk</a></p>", [{ text: "Luk", class: "btn-secondary", action: closeModal }]);
         }
-				//~ <br><p> Prøv også almindelig: <a href='https://wordlex.dk'>WordleX</a></p>
 				
 		function openHelpModal() {
 			dropdownEl.classList.remove('active');
@@ -1238,16 +1236,6 @@
 			showModal("Hjælp & Regler", html, [{ text: "Luk", class: "btn-primary", action: closeModal }]);
 		}
 
-		function openWModal() {
-			dropdownEl.classList.remove('active');
-			
-			const html = `
-				<div style="line-height: 1.5; font-size: 0.9rem; color: #333;">
-					<p><strong>WordleX</strong> er den almindelige version af WordleX, hvor man skal finde et ord på 5 bogstaver og man har 6 forsøg. </p>
-				</div>`;
-
-			showModal("Prøv WordleX", html, [{ text: "Nej tak", class: "btn-secondary", action: closeModal }, { text: "Prøv WordleX", class: "btn-primary", action: () => window.location.href = "https://wordlex.dk" }]);
-		}
 		
         function showModal(title, bodyHtml, buttons) {
             document.getElementById('modal-title').innerText = title;

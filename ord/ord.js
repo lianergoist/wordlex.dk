@@ -1,4 +1,5 @@
-// ord.js - fælles hjælpefunktioner for ordbogens sider.
+// ord.js - fælles hjælpefunktioner for ordbogens sider (bruges også af forsiden,
+// som sætter window.WORDLEX_API = 'ord/api.php' før filen indlæses).
 
 const STATUS_LABELS = { common: 'Almindelig', rare: 'Sjælden', deleted: 'Slettet' };
 const STATUS_HELP = {
@@ -16,7 +17,7 @@ async function api(action, body = null, params = {}) {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body)
 	};
-	const res = await fetch('api.php?' + query, { credentials: 'same-origin', ...options });
+	const res = await fetch((window.WORDLEX_API || 'api.php') + '?' + query, { credentials: 'same-origin', ...options });
 	return res.json();
 }
 
@@ -60,6 +61,7 @@ async function loadMe() {
 
 function renderHeader() {
 	const nav = document.getElementById('nav');
+	if (!nav) return; // forsiden har sin egen menu
 	const games = Object.entries(me.game_urls || {})
 		.map(([len, url]) => `<a href="${esc(url)}">Spil ${esc(len)}</a>`).join('');
 	const admin = me.is_admin ? '<a href="admin.html">Admin</a>' : '';
@@ -69,12 +71,12 @@ function renderHeader() {
 	nav.innerHTML = `<a href="index.html">Ordbog</a>${games}${admin}${account}`;
 }
 
-function showModal(html) {
+function showModal(html, extraClass = '') {
 	closeModal();
 	const overlay = document.createElement('div');
 	overlay.className = 'modal-overlay';
 	overlay.id = 'modal';
-	overlay.innerHTML = `<div class="modal">${html}</div>`;
+	overlay.innerHTML = `<div class="modal ${extraClass}">${html}</div>`;
 	overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 	document.body.appendChild(overlay);
 	const first = overlay.querySelector('input, textarea');

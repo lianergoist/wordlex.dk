@@ -60,6 +60,21 @@ $games = [
 	<link rel="icon" href="favicon.ico">
 	<link rel="stylesheet" href="ord/ord.css">
 	<style>
+		/* Toolbar med menu (samme opbygning som i spillene) */
+		.toolbar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 6px 12px; background: #fff; border-bottom: 1px solid var(--color-line); }
+		.toolbar-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; color: inherit; }
+		.toolbar-title:hover { text-decoration: none; }
+		.toolbar-right { position: relative; display: flex; align-items: center; gap: 6px; }
+		.toolbar-user { font-size: 0.8rem; font-weight: 600; color: var(--color-focus); background: none; border: none; cursor: pointer; }
+		.menu-btn { display: flex; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; }
+		.dropdown { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 180px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; z-index: 20; }
+		.dropdown.active { display: block; }
+		.dropdown button, .dropdown a { display: block; width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; border-bottom: 1px solid #f0f0f0; font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--color-text); cursor: pointer; }
+		.dropdown a:hover, .dropdown button:hover { background: #f5f5f8; text-decoration: none; }
+		.help h4 { margin: 14px 0 4px; font-size: 0.95rem; }
+		.help p, .help li { font-size: 0.9rem; }
+		.help ul { padding-left: 18px; }
+
 		.hero { text-align: center; padding: 36px 16px 8px; }
 		.hero .tiles { justify-content: center; margin-bottom: 18px; }
 		.hero .tile { width: 44px; height: 44px; font-size: 1.5rem; }
@@ -98,6 +113,20 @@ $games = [
 	</style>
 </head>
 <body>
+	<header class="toolbar">
+		<a class="toolbar-title" href="<?= h(SITE_URL) ?>">WordleX</a>
+		<div class="toolbar-right">
+			<button class="toolbar-user" id="toolbar-user">Gæst</button>
+			<button class="menu-btn" id="menu-btn" title="Menu" aria-haspopup="true" aria-expanded="false"><img src="w5/images/more_vert.svg" alt="Menu"></button>
+			<nav class="dropdown" id="menu">
+				<button id="menu-login">Log ind / Opret</button>
+				<a href="<?= h(WIKI_URL) ?>">Ordbog</a>
+				<button id="menu-help">Hjælp &amp; regler</button>
+				<button id="menu-about">Om WordleX</button>
+			</nav>
+		</div>
+	</header>
+
 	<div class="hero">
 		<?= tiles('WORDLEX', 'gyagaga') ?>
 		<h1 class="visually-hidden">WordleX</h1>
@@ -161,6 +190,76 @@ $games = [
 			<p style="margin-top:16px;"><a class="btn" href="<?= h(WIKI_URL) ?>">Gå til ordbogen</a></p>
 		</section>
 	</main>
+
+	<template id="help-text">
+		<h3>Hjælp &amp; regler</h3>
+		<div class="help">
+			<p>WordleX er dansk Wordle i to udgaver: <b>WordleX 5</b>, hvor du skal gætte et ord på 5 bogstaver på højst <?= VARIANT_ROWS[5] ?> forsøg, og <b>WordleX 6</b> med 6 bogstaver og <?= VARIANT_ROWS[6] ?> forsøg.</p>
+
+			<h4>Sådan spiller du</h4>
+			<ul>
+				<li><b style="color: var(--color-correct);">Grøn:</b> bogstavet er i ordet og står på den rigtige plads.</li>
+				<li><b style="color: #c79100;">Gul:</b> bogstavet er i ordet, men på en anden plads.</li>
+				<li><b style="color: var(--color-absent);">Grå:</b> bogstavet er ikke i ordet.</li>
+			</ul>
+
+			<h4>Point</h4>
+			<p>Du får point for hver ny grøn og gul brik – jo tidligere i spillet, jo flere. Gætter du ordet i første forsøg, får du 1.000 point i begge udgaver. En gul er halvt så meget værd som en grøn, og bliver en gul senere grøn, får du forskellen. Kun vundne spil giver point på Top-100.</p>
+
+			<h4>Hints</h4>
+			<p>I første række kan du gratis få et forslag til et startord. Derefter kan du købe en liste over de ord, der stadig er mulige. Prisen er 25–200 point og stiger, jo færre ord der er tilbage.</p>
+
+			<h4>Konto og Top-100</h4>
+			<p>Med en konto bliver din statistik gemt, og du kommer på Top-100. Den samme konto gælder begge spil og ordbogen.</p>
+
+			<h4>Ordbogen</h4>
+			<p>Spillerne bestemmer i fællesskab, hvilke ord der er med. Et ord kan være <?= badge('common') ?>, <?= badge('rare') ?> eller <?= badge('deleted') ?>. Kun almindelige ord kan blive løsningsord, og slettede ord accepteres ikke som gæt. <?= MIN_GAMES_TO_EDIT > 0 ? 'Har du spillet mindst ' . MIN_GAMES_TO_EDIT . ' spil' : 'Har du en konto' ?>, kan du ændre et ords status eller foreslå nye ord – altid med en begrundelse.</p>
+		</div>
+		<div class="modal-buttons"><button class="btn" onclick="closeModal()">Luk</button></div>
+	</template>
+
+	<template id="about-text">
+		<h3>Om WordleX</h3>
+		<p>WordleX er dansk Wordle med point, Top-100 og en ordliste, som spillerne selv er med til at styre.</p>
+		<p>Idé og vibe-kode: Thomas Jensen</p>
+		<p>Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a></p>
+		<div class="modal-buttons"><button class="btn" onclick="closeModal()">Luk</button></div>
+	</template>
+
+	<script>window.WORDLEX_API = 'ord/api.php';</script>
+	<script src="ord/ord.js"></script>
+	<script>
+		const menu = document.getElementById('menu');
+		const menuBtn = document.getElementById('menu-btn');
+
+		function toggleMenu(open) {
+			menu.classList.toggle('active', open);
+			menuBtn.setAttribute('aria-expanded', open);
+		}
+		menuBtn.addEventListener('click', e => { e.stopPropagation(); toggleMenu(!menu.classList.contains('active')); });
+		document.addEventListener('click', e => { if (!menu.contains(e.target)) toggleMenu(false); });
+
+		function showTemplate(id, extraClass = '') {
+			toggleMenu(false);
+			showModal(document.getElementById(id).innerHTML, extraClass);
+		}
+		document.getElementById('menu-help').onclick = () => showTemplate('help-text', 'modal-wide');
+		document.getElementById('menu-about').onclick = () => showTemplate('about-text');
+
+		loadMe().then(me => {
+			const userBtn = document.getElementById('toolbar-user');
+			const loginBtn = document.getElementById('menu-login');
+			if (me.logged_in) {
+				userBtn.textContent = me.username;
+				userBtn.onclick = e => { e.stopPropagation(); toggleMenu(true); };
+				loginBtn.textContent = 'Log ud';
+				loginBtn.onclick = () => { toggleMenu(false); logout(); };
+			} else {
+				userBtn.onclick = openLogin;
+				loginBtn.onclick = () => { toggleMenu(false); openLogin(); };
+			}
+		});
+	</script>
 
 	<footer>
 		Idé og vibe-kode: Thomas Jensen · Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a>

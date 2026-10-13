@@ -34,15 +34,23 @@ if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
 }
 define('WIKI_URL', SITE_URL . 'ord/');
 
+// --- VÆRN MOD HÆRVÆRK I ORDBOGEN (gælder ikke admin) ---
+// I testperioden (frem til 1. november 2026) må alle med en konto redigere,
+// så ordbogen kan komme i gang. Derefter kræves der spil bag kontoen.
+if (WORDLEX_ENV === 'test') {
+    define('MIN_GAMES_TO_EDIT', 0);    // afsluttede spil (begge udgaver tilsammen)
+    define('MAX_EDITS_PER_DAY', 100);  // ændringer + nye ord pr. døgn
+} else {
+    define('MIN_GAMES_TO_EDIT', 10);
+    define('MAX_EDITS_PER_DAY', 20);
+}
+
 // Antal forsøg pr. ordlængde
 const VARIANT_ROWS = [5 => 6, 6 => 7];
 
 // Bruges hvis ordlisten mod forventning er tom
 const VARIANT_FALLBACK_WORDS = [5 => 'TORSK', 6 => 'FLASKE'];
 
-// --- VÆRN MOD HÆRVÆRK I ORDBOGEN (gælder ikke admin) ---
-const MIN_GAMES_TO_EDIT = 10;   // afsluttede spil (begge udgaver tilsammen)
-const MAX_EDITS_PER_DAY = 20;   // ændringer + nye ord pr. døgn
 const MIN_COMMENT_LENGTH = 5;
 const MAX_COMMENT_LENGTH = 500;
 

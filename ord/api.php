@@ -141,6 +141,7 @@ if ($action === 'my_status') {
         'reason' => $permission['reason'],
         'game_urls' => GAME_URLS,
         'min_comment_length' => MIN_COMMENT_LENGTH,
+        'min_games' => MIN_GAMES_TO_EDIT,
     ]);
     exit;
 }
