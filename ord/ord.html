@@ -109,14 +109,17 @@
 
 		function editFormHtml(exists, lock) {
 			const perm = info.permission;
-			const title = exists ? 'Skift status' : 'Foreslå eller afvis ordet';
+			// Forklaring af de tre statusser over overskriften
+			const legend = '<ul class="status-legend">' + Object.keys(STATUS_HELP)
+				.map(s => `<li>${statusBadge(s)} ${esc(STATUS_HELP[s])}</li>`).join('') + '</ul>';
+			const heading = legend + `<h2>${exists ? 'Skift status' : 'Foreslå eller afvis ordet'}</h2>`;
 
 			if (lock && !info.is_admin) {
-				return `<h2>${title}</h2><p class="muted">Ordet er låst.</p>`;
+				return `${heading}<p class="muted">Ordet er låst.</p>`;
 			}
 			if (!perm.can_edit) {
 				const login = me.logged_in ? '' : ' <button class="link-btn" onclick="openLogin()">Log ind</button>';
-				return `<h2>${title}</h2><p class="muted">${esc(perm.reason)}${login}</p>`;
+				return `${heading}<p class="muted">${esc(perm.reason)}${login}</p>`;
 			}
 
 			const options = ['common', 'rare', 'deleted']
@@ -124,7 +127,7 @@
 				.map(s => `<label><input type="radio" name="status" value="${s}"> ${statusBadge(s)}</label>`).join('');
 
 			return `
-				<h2>${title}</h2>
+				${heading}
 				<p class="muted">${exists ? 'Vælg ny status og begrund ændringen.' : 'Ordet findes ikke i ordlisten. Vælg om det skal være almindeligt eller sjældent, eller markér det som slettet, så det ikke længere står blandt de ord, spillerne savner. Begrund dit valg.'}</p>
 				<div class="status-options">${options}</div>
 				<textarea id="comment" maxlength="500" placeholder="Begrundelse (mindst ${me.min_comment_length} tegn)"></textarea>
