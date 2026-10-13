@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<title>WordleX 6 – Dansk Wordle (6 Bogstaver)</title>
+
+	
+	    <!-- Primære Meta Tags -->
+	<title>WordleX – Dansk Wordle | Spil gratis ordspil online (Daglig & Ubegrænset)</title>
+	<meta name="description" content="Spil WordleX med 6 bogstaver og 7 rækker gratis på dansk!">
+	<meta name="keywords" content="wordle på dansk, dansk wordle, ordspil online, gæt ordet, gratis ordgåde">
+	<link rel="canonical" href="https://wordlex.dk/" />
+
+	<!-- Open Graph / Facebook / Socials -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://wordlex.dk/" />
+	<meta property="og:title" content="WordleX – Ny dansk opdateret Wordle" />
+	<meta property="og:description" content="Gæt det hemmelige ord på 6 bogstaver!" />
+	<meta property="og:image" content="https://wordlex.dk/images/wordlex6.png" /> <!-- Opret et flot delebillede (1200x630) -->
+
+	<!-- Twitter / X -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="WordleX – Ny dansk opdateret Wordle" />
+	<meta name="twitter:description" content="Gæt det hemmelige ord på 6 bogstaver!" />
+	<meta name="twitter:image" content="https://wordlex.dk//images/wordlex6.png" />
+<style>
+    :root {
+        --color-correct: #4caf50;
+        --color-present: #fbc02d;
+        --color-absent: #757575;
+        --color-bg: #f8f8fb;
+        --color-tile-border: #d3d6da;
+        --color-key-bg: #e2e4e9;
+        --color-text: #1a1a1a;
+        --color-focus: #2196f3;
+    }
+    
+    * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+        touch-action: manipulation;
+    }
+
+    body { 
+        background-color: var(--color-bg); 
+        color: var(--color-text); 
+        display: flex; 
+        flex-direction: column; 
+        height: 100vh; 
+        height: 100dvh; 
+        overflow: hidden; 
+        padding-bottom: env(safe-area-inset-bottom, 0px); 
+    }
+
+    header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 4px 12px; 
+        border-bottom: 1px solid #e0e0e0; 
+        background: #fff; 
+        height: clamp(36px, 8vh, 48px); 
+        flex-shrink: 0; 
+    }
+    
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    h1 { font-size: clamp(1.1rem, 2vh, 1.4rem); font-weight: 800; letter-spacing: -0.5px; }
+    .score-badge { background: #f0f0f5; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: #555; }
+    .user-status { font-size: 0.8rem; color: #2196f3; font-weight: 600; cursor: pointer; }
+
+    .header-actions { position: relative; display: flex; gap: 4px; }
+    .header-actions button { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+
+    .dropdown-menu { display: none; position: absolute; top: 100%; right: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; min-width: 170px; z-index: 200; overflow: hidden; margin-top: 4px; }
+    .dropdown-menu.active { display: block; }
+    .dropdown-menu button { width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+
+    /* Standard Layout: Vertikalt centreret (Gælder PC og Portræt) */
+    main { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        gap: clamp(10px, 2vh, 20px); 
+        padding: 8px 12px; 
+        width: 100%; 
+        max-width: 650px; 
+        margin: 0 auto; 
+        overflow: hidden; 
+    }
+
+    /* Board-container (Inputfelter) */
+    .board-container { 
+        display: grid; 
+        grid-template-rows: repeat(7, 1fr); 
+        gap: 5px; 
+        padding: 2px; 
+        width: 100%;
+        max-width: 420px; 
+    }
+
+    .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .tile { 
+        width: 100%;
+        aspect-ratio: 1; 
+        border: 2px solid var(--color-tile-border); 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        font-size: clamp(1.2rem, 3.8vh, 2.1rem); 
+        font-weight: bold; 
+        text-transform: uppercase; 
+        border-radius: 6px; 
+        background: #fff; 
+        transition: transform 0.15s ease, background-color 0.3s ease; 
+        user-select: none; 
+    }
+    .tile.editable { cursor: pointer; }
+    .tile.focused { border-color: var(--color-focus) !important; box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.3); }
+    .tile[data-state="correct"] { background-color: var(--color-correct); color: white; border-color: var(--color-correct); }
+    .tile[data-state="present"] { background-color: var(--color-present); color: white; border-color: var(--color-present); }
+    .tile[data-state="absent"] { background-color: var(--color-absent); color: white; border-color: var(--color-absent); }
+
+    /* Tastatur og Beskedfelt */
+    .right-panel { 
+        width: 100%; 
+        max-width: 600px; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 6px; 
+    }
+    .message-box { 
+        min-height: 36px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-weight: 600; 
+        font-size: clamp(0.85rem, 1.8vh, 1rem); 
+        color: #333; 
+        text-align: center; 
+        background: #fff; 
+        border-radius: 6px; 
+        padding: 4px 10px; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+    }
+
+    .keyboard { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    .keyboard-row { display: flex; justify-content: center; gap: 5px; width: 100%; }
+    .key { 
+        background-color: var(--color-key-bg); 
+        border: none; 
+        border-radius: 5px; 
+        font-size: clamp(0.9rem, 2.2vh, 1.25rem); 
+        font-weight: bold; 
+        height: clamp(38px, 5.5vh, 60px); 
+        flex: 1; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        cursor: pointer; 
+        user-select: none; 
+        -webkit-user-select: none; 
+        text-transform: uppercase; 
+    }
+    .key.large { flex: 1.5; font-size: clamp(0.8rem, 1.9vh, 1rem); }
+    .key[data-state="correct"] { background-color: var(--color-correct); color: white; }
+    .key[data-state="present"] { background-color: var(--color-present); color: white; }
+    .key[data-state="absent"] { background-color: var(--color-absent); color: white; }
+
+    /* Mobil i portræt */
+    @media (max-width: 480px) and (orientation: portrait) {
+        .board-container { max-width: 320px; }
+        .right-panel { max-width: 100%; }
+    }
+
+    /* Landskab-mode for Tablets og Mobiler (aktiveres ved lav højde / bredt format) */
+    @media (orientation: landscape) and (max-height: 600px) {
+        main { 
+            flex-direction: row; 
+            align-items: center; 
+            justify-content: center; 
+            gap: clamp(12px, 3vw, 36px); 
+            max-width: 100%; 
+            padding: 4px 16px; 
+        }
+        .board-container { 
+            flex-shrink: 0;
+            width: clamp(200px, 32vw, 320px);    
+            max-width: 320px;
+            margin: 0;
+        }
+        .right-panel { 
+            flex: 1; 
+            max-width: 500px; 
+            margin: 0; 
+            gap: 6px; 
+        }
+        .key { height: clamp(28px, 8vh, 44px); }
+    }
+
+    /* Modaler og animationer */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 300; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; max-width: 380px; width: 90%; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .modal-footer { margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; }
+    .btn { padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-primary { background: #2196f3; color: white; }
+    .btn-secondary { background: #e0e0e0; color: #333; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+
+    .word-list { list-style: none; display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+    .word-list li { padding: 10px; background: #ffffff; border-radius: 6px; text-align: center; font-weight: bold; font-size: 1.05rem; letter-spacing: 2px; cursor: pointer; transition: background 0.15s ease; }
+    .word-list li:hover { background: #2196f3; color: white; }
+
+    .points_hints { display: flex; justify-content: space-between; width: 100%; border-bottom: 1px dashed #eee; padding-bottom: 4px; margin-bottom: 8px; }
+
+    .tab-container { display: flex; background: #eef0f5; padding: 4px; border-radius: 10px; margin-bottom: 14px; gap: 4px; }
+    .tab-btn { flex: 1; padding: 8px 14px; background: transparent; border: none; border-radius: 7px; font-weight: 700; font-size: 0.88rem; color: #666; cursor: pointer; }
+    .tab-btn.active { background: #ffffff; color: #2196f3; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+
+    .tab-content { display: none; max-height: 310px; overflow-y: auto; padding-right: 6px; }
+    .tab-content.active { display: block; }
+
+    .tile.flip { animation: flipTile 0.5s ease forwards; }
+    @keyframes flipTile {
+        0% { transform: rotateX(0deg); }
+        50% { transform: rotateX(90deg); }
+        100% { transform: rotateX(0deg); }
+    }
+
+    .row.shake { animation: shakeRow 0.4s ease-in-out; }
+    @keyframes shakeRow {
+        0%, 100% { transform: translateX(0); }
+        20%      { transform: translateX(-8px); }
+        40%      { transform: translateX(8px); }
+        60%      { transform: translateX(-5px); }
+        80%      { transform: translateX(5px); }
+    }
+
+    .inline-icon { height: 1em; width: auto; vertical-align: -0.125em; display: inline-block; }
+    
+    
+    .gold-text {
+	  background: linear-gradient(
+		100deg,
+		#6b4e0a 0%,
+		#b8860b 25%,
+		#e8c158 40%,
+		#fff6d5 50%,
+		#e8c158 60%,
+		#b8860b 75%,
+		#5c4009 100%
+	  );
+	  background-size: 250% 100%;
+	  background-position: 100% 0;
+
+	  -webkit-background-clip: text;
+	  -webkit-text-fill-color: transparent;
+	  background-clip: text;
+	  font-weight: 800;
+	  display: inline-block;
+	  
+	  letter-spacing: 1px;
+
+	  -webkit-text-stroke: 0.6px #5c4009;
+
+	  filter: 
+		drop-shadow(0px 1px 0px rgba(255, 255, 255, 0.3))
+		drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.5));
+
+	  animation: shine 3s ease-in-out infinite;
+	}
+
+	@keyframes shine {
+	  0% {
+		background-position: 100% 0;
+	  }
+	  50% {
+		background-position: 0% 0;
+	  }
+	  100% {
+		background-position: 100% 0;
+	  }
+	}
+
+	/* Styling til version-pop-up modal */
+	.modal {
+		display: none; /* Gemt som standard */
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.6);
+		z-index: 9999;
+		justify-content: center;
+		align-items: center;
+		padding: 15px;
+		box-sizing: border-box;
+	}
+
+	.modal.active {
+		display: flex; /* Vises når .active klassen tilføjes */
+	}
+
+	.modal-content {
+		background-color: #fff;
+		border-radius: 12px;
+		padding: 24px;
+		box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+		width: 100%;
+		animation: popIn 0.25s ease-out;
+	}
+
+	@keyframes popIn {
+		from { transform: scale(0.9); opacity: 0; }
+		to { transform: scale(1); opacity: 1; }
+	}
+
+
+</style>
+  <link rel="icon" href="favicon.ico">
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <h1>WordleX 6</h1>
+            <!-- <div class="score-badge">Point: <span id="current-score">0</span></div> -->
+            <div class="score-badge"><span id="current-score">0</span></div>
+            <div class="user-status" id="user-status" onclick="openLoginModal()">Gæst</div>
+        </div>
+        <div class="header-actions">
+            <button id="btn-new-game" title="Nyt spil"><img src="images/refresh.png" alt="Nyt spil"></button>
+            <button id="btn-hint" title="Hint"><img src="images/lightbulb.png" alt="Hint"></button>
+            <button id="btn-menu" title="Menu"><img src="images/more_vert.png" alt="Menu"></button>
+			<div class="dropdown-menu" id="dropdown-menu">
+				<button id="menu-login-btn" onclick="openLoginModal()">Log ind / Opret</button>
+				<button onclick="openLeaderboardModal()">Top-100</button>
+				<button onclick="openStatsModal()">Statistik & Point</button>
+				<button onclick="openWModal()">Alm. WordleX</button>
+				<button onclick="openHelpModal()">Hjælp & Regler</button>
+				<button onclick="openAboutModal()">Om WordleX 6</button>
+			</div>
+        </div>
+    </header>
+
+    <main>
+        <div class="board-container" id="board"></div>
+
+        <div class="right-panel">
+            <div class="message-box" id="message">Indlæser nyt spil...</div>
+            <div class="keyboard" id="keyboard"></div>
+        </div>
+    </main>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Titel</h3>
+                <button style="border:none;background:none;font-size:1.2rem;cursor:pointer;" onclick="closeModal()">✕</button>
+            </div>
+            <div id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentGameId = null;
+        let currentUser = null;
+        let currentRow = 0;
+        let currentTile = 0;
+        let score = 0;
+        let hintsUsed = 0;
+        let gameOver = false;
+        
+        // 7 RÆKKER x 6 BOGSTAVER
+        let boardState = Array(7).fill().map(() => Array(6).fill(''));
+
+        // NB: point beregnes ikke længere her - de kommer autoritativt fra
+        // api.php (entropi-baseret scoring, samme princip som 5-bogstavs-
+        // udgaven). Denne bruges kun til at afgøre om en grøn brik i en NY
+        // række er "ny" information eller en gentagelse fra en tidligere
+        // række, så beskeden ("Du fik X nye grønne...") bliver korrekt.
+        let greenPositionsKnown = [false, false, false, false, false, false];
+
+        let discoveredGreen = new Set();
+        let discoveredYellow = new Set();
+        let discoveredAbsent = new Set();
+
+        const boardEl = document.getElementById('board');
+        const keyboardEl = document.getElementById('keyboard');
+        const scoreEl = document.getElementById('current-score');
+        const messageEl = document.getElementById('message');
+        const dropdownEl = document.getElementById('dropdown-menu');
+        const userStatusEl = document.getElementById('user-status');
+        const menuLoginBtn = document.getElementById('menu-login-btn');
+
+        const KEYBOARD_ROWS = [
+            ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "Å"],
+            ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Æ", "Ø"],
+            ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "DELETE"]
+        ];
+
+        async function checkAuthStatus() {
+            try {
+                const res = await fetch('api.php?action=me', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.logged_in) {
+                    currentUser = data.username;
+                    userStatusEl.innerText = currentUser;
+                    menuLoginBtn.innerText = "Log ud";
+                    menuLoginBtn.onclick = handleLogout;
+                } else {
+                    currentUser = null;
+                    userStatusEl.innerText = "Gæst";
+                    menuLoginBtn.innerText = "Log ind / Opret";
+                    menuLoginBtn.onclick = openLoginModal;
+                }
+            } catch(e){}
+        }
+
+		async function startNewGame() {
+			currentRow = 0;
+			currentTile = 0;
+			score = 0;
+			hintsUsed = 0;
+			gameOver = false;
+			isSubmitting = false; 
+            boardState = Array(7).fill().map(() => Array(6).fill(''));
+            greenPositionsKnown = [false, false, false, false, false, false];
+
+            discoveredGreen.clear();
+            discoveredYellow.clear();
+            discoveredAbsent.clear();
+
+            updateScoreDisplay();
+            showMessage("Henter spil...");
+            buildUI();
+
+            try {
+                const response = await fetch('api.php?action=start', { 
+					credentials: 'same-origin' 
+				});
+                const data = await response.json();
+                
+                if (data.game_id) {
+                    currentGameId = data.game_id;
+                    showMessage("Gæt ordet på 6 bogstaver");
+                    updateFocusTile();
+                } else {
+                    showMessage("Fejl ved oprettelse af spil....");
+                }
+            } catch (err) {
+                showMessage("Kunne ikke forbinde til serveren...");
+            }
+        }
+        
+        function handleNewGameRequest() {
+            if (gameOver || (currentRow === 0 && boardState[0].every(c => c === ''))) {
+                startNewGame();
+                return;
+            }
+
+            showModal("Afbryd spil?", 
+                `<p>Er du sikker på, at du vil afbryde det igangværende spil?</p>
+                 <p style="margin-top:8px; font-size:0.85rem; color:#666;">Dine nuværende point for runden vil gå tabt.</p>`,
+                [
+                    { text: "Nej, fortsæt spil", class: "btn-secondary", action: closeModal },
+                    { text: "Ja, afbryd spil", class: "btn-primary", action: confirmAbandonGame }
+                ]
+            );
+        }
+
+		async function confirmAbandonGame() {
+			closeModal();
+			gameOver = true;
+
+			try {
+				const res = await fetch('api.php?action=abandon', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ game_id: currentGameId })
+				});
+				const data = await res.json();
+				const secretWord = data.secret_word || "Ukendt";
+
+				showModal("Spil afbrudt", 
+					`<p>Spillet er afbrudt.</p>
+					 <p style="margin-top:10px;">Løsningsordet var: <b style="font-size:1.1rem; color:#000000;">${secretWord}</b></p>`,
+					[
+						{ text: "Start nyt spil", class: "btn-primary", action: () => { closeModal(); startNewGame(); } }
+					]
+				);
+			} catch(e) {
+				startNewGame();
+			}
+		}
+
+        function buildUI() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 7; r++) {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'row';
+                for (let c = 0; c < 6; c++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.id = `tile-${r}-${c}`;
+                    tile.addEventListener('click', () => handleTileClick(r, c));
+                    rowEl.appendChild(tile);
+                }
+                boardEl.appendChild(rowEl);
+            }
+
+            keyboardEl.innerHTML = '';
+            KEYBOARD_ROWS.forEach(row => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'keyboard-row';
+                row.forEach(key => {
+                    const btn = document.createElement('button');
+                    btn.className = 'key' + (key.length > 1 ? ' large' : '');
+                    btn.innerText = key === 'DELETE' ? '⌫' : key;
+                    btn.dataset.key = key;
+                    btn.addEventListener('click', () => handleKeyPress(key));
+                    rowEl.appendChild(btn);
+                });
+                keyboardEl.appendChild(rowEl);
+            });
+        }
+
+        function handleTileClick(row, col) {
+            if (gameOver || row !== currentRow) return;
+            currentTile = col;
+            updateFocusTile();
+        }
+
+        function updateFocusTile() {
+            document.querySelectorAll('.tile').forEach(t => t.classList.remove('focused', 'editable'));
+            if (gameOver) return;
+
+            for (let c = 0; c < 6; c++) {
+                const tile = document.getElementById(`tile-${currentRow}-${c}`);
+                if (tile) tile.classList.add('editable');
+            }
+
+            const activeTile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+            if (activeTile) activeTile.classList.add('focused');
+        }
+
+		document.addEventListener('keydown', (e) => {
+			if (gameOver) return;
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+			let key = e.key.toUpperCase();
+
+			if (key === 'ENTER') {
+				e.preventDefault();
+				handleKeyPress('ENTER');
+			} else if (key === 'BACKSPACE' || e.key === '\\') {
+				e.preventDefault();
+				handleKeyPress('DELETE');
+			} else if (key === 'DELETE') {
+				e.preventDefault();
+				handleKeyPress('PHYSICAL_DELETE');
+			} else if (key === 'ARROWLEFT' && currentTile > 0) { 
+				e.preventDefault();
+				currentTile--; 
+				updateFocusTile(); 
+			} else if (key === 'ARROWRIGHT' && currentTile < 5) { 
+				e.preventDefault();
+				currentTile++; 
+				updateFocusTile(); 
+			} else if (/^[A-ZÆØÅ]$/.test(key)) {
+				handleKeyPress(key);
+			}
+		});
+
+		function handleKeyPress(key) {
+			if (gameOver) return;
+
+			if (key === 'DELETE') {
+				if (boardState[currentRow][currentTile] !== '') {
+					boardState[currentRow][currentTile] = '';
+					const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+					if (tile) tile.innerText = '';
+				} else if (currentTile > 0) {
+					currentTile--;
+					boardState[currentRow][currentTile] = '';
+					const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+					if (tile) tile.innerText = '';
+				}
+				updateFocusTile();
+			} else if (key === 'PHYSICAL_DELETE') {
+				boardState[currentRow][currentTile] = '';
+				const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+				if (tile) tile.innerText = '';
+				updateFocusTile();
+			} else if (key === 'ENTER') {
+				const filledCount = boardState[currentRow].filter(c => c !== '').length;
+				if (filledCount === 6) {
+					submitGuess();
+				} else {
+					showMessage("Udfyld alle 6 felter!");
+				}
+			} else if (/^[A-ZÆØÅ]$/.test(key)) {
+				boardState[currentRow][currentTile] = key;
+				const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+				if (tile) tile.innerText = key;
+				if (currentTile < 5) currentTile++;
+				updateFocusTile();
+			}
+		}
+
+		let isSubmitting = false;
+
+		async function submitGuess() {
+			if (isSubmitting || gameOver) return;
+
+			const guess = boardState[currentRow].join('');
+			if (guess.length !== 6) return;
+
+			isSubmitting = true;
+
+			try {
+				const res = await fetch('api.php?action=guess', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ game_id: currentGameId, guess: guess })
+				});
+				const data = await res.json();
+
+				if (!data.valid) {
+					showMessage(data.message || "Ugyldigt ord!");
+					
+					const currentRowEl = boardEl.children[currentRow];
+					if (currentRowEl) {
+						currentRowEl.classList.add('shake');
+						setTimeout(() => {
+							currentRowEl.classList.remove('shake');
+						}, 400);
+					}
+					isSubmitting = false;
+					return;
+				}
+
+				clearMessage();
+
+				let newGreens = 0;
+				let newYellows = 0;
+
+				data.result.forEach((state, col) => {
+					const tile = document.getElementById(`tile-${currentRow}-${col}`);
+					const letter = guess[col];
+
+					if (tile) {
+						tile.style.animationDelay = `${col * 150}ms`;
+						tile.classList.add('flip');
+
+						setTimeout(() => {
+							tile.innerText = letter;
+							tile.dataset.state = state;
+						}, (col * 150) + 250);
+					}
+
+					// Tæller kun "nye" grønne/gule til beskeden - selve pointene
+					// (guess_score/total_score) kommer autoritativt fra serveren nedenfor.
+					if (state === 'correct') {
+						if (!greenPositionsKnown[col]) {
+							greenPositionsKnown[col] = true;
+							newGreens++;
+						}
+					} else if (state === 'present') {
+						if (!discoveredYellow.has(letter) && !discoveredGreen.has(letter)) {
+							newYellows++;
+						}
+					}
+
+					setTimeout(() => {
+						const keyBtn = document.querySelector(`.key[data-key="${letter}"]`);
+						if (keyBtn) {
+							if (state === 'correct') {
+								keyBtn.dataset.state = 'correct';
+								discoveredGreen.add(letter);
+							} else if (state === 'present' && keyBtn.dataset.state !== 'correct') {
+								keyBtn.dataset.state = 'present';
+								discoveredYellow.add(letter);
+							} else if (state === 'absent' && !keyBtn.dataset.state) {
+								keyBtn.dataset.state = 'absent';
+								discoveredAbsent.add(letter);
+							}
+						}
+					}, (col * 150) + 250);
+				});
+
+				// Point kommer nu 100% fra serveren (entropi-baseret) - klienten
+				// regner intet selv, den spejler blot api.php's autoritative tal.
+				const guessScore = data.guess_score;
+				score = data.total_score;
+
+				const totalAnimationTime = (5 * 150) + 500; // ~1250ms for 6 felt animationer
+
+				setTimeout(() => {
+					updateScoreDisplay();
+
+					if (data.is_correct) {
+						const rowMessages = [
+							'Vildt imponerende! Du fik ', 
+							'Wouw... fantastisk! Du fik ', 
+							'Imponerende! Du fik ', 
+							'Rigtig flot! Du fik ', 
+							'Flot! Du fik ', 
+							'Yes! Du fik ',
+							'Du nåede det lige! Du fik '
+						];
+						showMessage(`${rowMessages[currentRow]} ${Math.round(score)} point`);
+						endGame(true);
+					} else if (data.is_finished) {
+						showMessage(`Løsningsordet var: ${data.secret_word}`);
+						endGame(false);
+					} else {
+						const isFirstRow = (currentRow === 0);
+						const prefix = isFirstRow ? '' : ' ny';
+						const prefixPlural = isFirstRow ? '' : ' nye';
+
+						let parts = [];
+						if (newGreens > 0) {
+							parts.push(`${newGreens}${newGreens > 1 ? prefixPlural : prefix} grøn${newGreens > 1 ? 'ne' : ''}`);
+						}
+						if (newYellows > 0) {
+							parts.push(`${newYellows}${newYellows > 1 ? prefixPlural : prefix} gul${newYellows > 1 ? 'e' : ''}`);
+						}
+
+						if (parts.length > 0) {
+							showMessage(`Du fik ${parts.join(' og ')} ( +${Math.round(guessScore)} point )`);
+						} else {
+							showMessage(`Ingen nye brikker ( 0 point )`);
+						}
+						currentRow++;
+						currentTile = 0;
+						updateFocusTile();
+					}
+
+					isSubmitting = false;
+				}, totalAnimationTime);
+
+			} catch (err) {
+				showMessage("Der opstod en netværksfejl.");
+				isSubmitting = false;
+			}
+		}
+
+        /* --- HINT SYSTEM --- */
+
+		// Bygger det filter (mønster + kendte bogstaver), som ordlisten
+		// (og nu også optællingen af den) skal matches imod. Udtrukket til
+		// egen funktion, så både prisberegningen og selve visningen bruger
+		// nøjagtig samme grundlag.
+		function buildWordFilterPayload() {
+			let pattern = ['_', '_', '_', '_', '_', '_'];
+			let notAtPos = [[], [], [], [], [], []];
+
+			for (let r = 0; r < currentRow; r++) {
+				for (let c = 0; c < 6; c++) {
+					const tile = document.getElementById(`tile-${r}-${c}`);
+					if (!tile) continue;
+
+					const letter = tile.innerText.trim();
+					const state = tile.dataset.state;
+
+					if (state === 'correct') {
+						pattern[c] = letter;
+					} else if (state === 'present') {
+						if (letter && !notAtPos[c].includes(letter)) {
+							notAtPos[c].push(letter);
+						}
+					}
+				}
+			}
+
+			// NB: rækken der er ved at blive udfyldt (currentRow) er IKKE
+			// indsendt endnu, så dens bogstaver er ikke bekræftede og må
+			// ikke bruges som "korrekt på denne plads"-filter mod ordlisten.
+
+			return {
+				pattern: pattern.join(''),
+				absent: Array.from(discoveredAbsent),
+				present: Array.from(discoveredYellow),
+				not_at_pos: notAtPos
+			};
+		}
+
+		async function handleHintRequest() {
+			if (gameOver) return;
+
+			if (currentRow === 0) {
+				applyStartWordHint();
+				return;
+			}
+
+			const payload = { ...buildWordFilterPayload(), game_id: currentGameId };
+
+			// Prisen beregnes nu 100% server-side (samme formel som før, bare
+			// flyttet til api.php) - denne kaldsrunde trækker IKKE point endnu,
+			// den viser blot en forhåndsvisning. Selve betalingen sker i
+			// get_matching_words, når brugeren bekræfter.
+			let matchCount = null;
+			let price = 15;
+			try {
+				const res = await fetch('api.php?action=count_matching_words', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				const data = await res.json();
+				matchCount = data.count;
+				price = data.price;
+			} catch (e) {
+				matchCount = null;
+			}
+
+			const countText = (matchCount !== null)
+				? `<p style="margin-top:6px; font-size:0.85rem; color:#666;">Der er ${matchCount} ord, der matcher dine fundne bogstaver.</p>`
+				: '';
+
+			showModal("Vis Matchende Ord",
+			`<p>Vil du se en liste over mulige ord med dine fundne bogstaver?</p>
+			${countText}
+			<p style="margin-top:8px;">Pris: <b>${price} point</b></p>`,
+			[
+				{ text: "Afvis", class: "btn-secondary", action: closeModal },
+				{ text: `Vis Liste (${price} pt)`, class: "btn-primary", action: () =>
+				showMatchingWordsModal(payload) }
+			]
+			);
+		}
+
+        async function applyStartWordHint() {
+			hintsUsed++;
+			closeModal();
+
+			showMessage("Henter start-ord...");
+			try {
+				const res = await fetch('api.php?action=get_random_word', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ game_id: currentGameId })
+				});
+				const data = await res.json();
+				if (data.word) {
+					selectWordFromList(data.word);
+					showMessage(`Hint: Prøv ordet '${data.word}'`);
+				}
+				if (typeof data.total_score === 'number') {
+					score = data.total_score;
+					updateScoreDisplay();
+				}
+			} catch(e) {
+				showMessage("Kunne ikke hente hint.");
+			}
+		}
+
+        async function showMatchingWordsModal(payload) {
+            hintsUsed++;
+            closeModal();
+
+            showMessage("Henter matchende ord...");
+
+            try {
+                // payload (pattern/absent/present/not_at_pos/game_id) er allerede
+                // bygget i handleHintRequest, så prisen og den viste liste altid
+                // er baseret på nøjagtig samme filter.
+                const res = await fetch('api.php?action=get_matching_words', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                const list = data.words || [];
+
+                // Prisen er nu trukket server-side - vi spejler blot resultatet.
+                if (typeof data.total_score === 'number') {
+                    score = data.total_score;
+                    updateScoreDisplay();
+                }
+
+                let listHtml = '<ul class="word-list">';
+                if (Array.isArray(list) && list.length > 0) {
+                    list.forEach(w => {
+                        listHtml += `<li onclick="selectWordFromList('${w}')">${w}</li>`;
+                    });
+                } else {
+                    listHtml += '<p>Ingen matchende ord fundet.</p>';
+                }
+                listHtml += '</ul>';
+
+                showModal("Mulige Ord", listHtml, [{ text: "Luk", class: "btn-secondary", action: closeModal }]);
+            } catch (err) {
+                showModal("Fejl", "<p>Kunne ikke hente ordlisten.</p>", [{ text: "Luk", class: "btn-secondary", action: closeModal }]);
+            }
+        }
+
+        function selectWordFromList(word) {
+            closeModal();
+            for (let i = 0; i < 6; i++) {
+                boardState[currentRow][i] = word[i];
+                const tile = document.getElementById(`tile-${currentRow}-${i}`);
+                if (tile) tile.innerText = word[i];
+            }
+            currentTile = 5;
+            updateFocusTile();
+        }
+
+        function openLoginModal() {
+            dropdownEl.classList.remove('active');
+            const html = `
+                <div class="form-group">
+                    <label>Brugernavn</label>
+                    <input type="text" id="login-username" maxlength="20" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Kodeord</label>
+                    <input type="password" id="login-password">
+                </div>
+                <div id="auth-error" style="color:red;font-size:0.85rem;margin-bottom:8px;"></div>
+            `;
+
+            showModal("Log ind / Opret bruger", html, [
+                { text: "Opret ny", class: "btn-secondary", action: handleRegister },
+                { text: "Log ind", class: "btn-primary", action: handleLogin }
+            ]);
+        }
+
+		async function handleLogin() {
+			const u = document.getElementById('login-username').value;
+			const p = document.getElementById('login-password').value;
+
+			const res = await fetch('api.php?action=login', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({ username: u, password: p })
+			});
+			const data = await res.json();
+
+			if (data.success) {
+				localStorage.setItem('wordlex6_user', JSON.stringify({ username: data.username }));
+				closeModal();
+				checkAuthStatus();
+				showMessage(`Velkommen tilbage, ${data.username}!`);
+			} else {
+				document.getElementById('auth-error').innerText = data.message;
+			}
+		}
+
+        async function handleRegister() {
+            const errorEl = document.getElementById('auth-error');
+            const u = document.getElementById('login-username').value.trim();
+            const p = document.getElementById('login-password').value;
+
+            if (u.length === 0) {
+                errorEl.innerText = "Indtast venligst et brugernavn.";
+                return;
+            }
+
+            if (u.length > 20) {
+                errorEl.innerText = "Brugernavnet må højst være 20 tegn.";
+                return;
+            }
+
+            if (p.length === 0) {
+                errorEl.innerText = "Indtast venligst et kodeord.";
+                return;
+            }
+
+            const res = await fetch('api.php?action=register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'same-origin',
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                closeModal();
+                checkAuthStatus();
+                showMessage(`Velkommen ${data.username}!`);
+            } else {
+                errorEl.innerText = data.message;
+            }
+        }
+
+		async function handleLogout() {
+			dropdownEl.classList.remove('active');
+			localStorage.removeItem('wordlex6_user');
+			await fetch('api.php?action=logout', {credentials: 'same-origin'});
+			checkAuthStatus();
+			showMessage("Du er nu logget ud...");
+		}
+
+		async function openLeaderboardModal() {
+			dropdownEl.classList.remove('active');
+
+			try {
+				const res = await fetch('api.php?action=leaderboard', {credentials: 'same-origin'});
+				const data = await res.json();
+
+				const highList = data.high_score || [];
+				const avgList = data.avg_score || [];
+
+				const renderList = (items, keyName, labelSuffix) => {
+					if (!items || items.length === 0) return "<p>Ingen spillere endnu...</p>";
+					
+					let html = '<ol style="padding-left: 32px; padding-bottom: 8px; margin: 0;">';
+
+					items.forEach(item => {
+						const val = Math.round(parseFloat(item[keyName] || 0));
+						const isGold = (val === 1200);
+						
+						html += `
+							<li style="margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 4px;">
+								<div style="display: flex; justify-content: space-between; width: 100%;">`;
+
+						if (isGold) {
+							html += `
+								<span class="gold-text">🏆 <b>${item.username}</b></span>
+								<span class="gold-text"><b>${val} ${labelSuffix}</b></span>`;
+						} else {
+							html += `
+								<span><b>${item.username}</b></span>
+								<span><b>${val} ${labelSuffix}</b></span>`;
+						}
+
+						html += `
+								</div>
+							</li>`;
+					});
+					html += '</ol>';
+					return html;
+				};
+
+				const modalHtml = `
+					<div class="tab-container">
+						<button class="tab-btn active" id="tab-btn-high" onclick="switchLeaderboardTab('high')">Highscore</button>
+						<button class="tab-btn" id="tab-btn-avg" onclick="switchLeaderboardTab('avg')">Gennemsnit</button>
+					</div>
+					<div id="tab-content-high" class="tab-content active">
+						${renderList(highList, 'high_score', 'pt')}
+					</div>
+					<div id="tab-content-avg" class="tab-content">
+						${renderList(avgList, 'avg_score', 'point/spil')}
+					</div>
+				`;
+
+				showModal("Top-100 (6 bogstaver)", modalHtml, [{ text: "Luk", class: "btn-primary", action: closeModal }]);
+			} catch (err) {
+				showModal("Top-100 Fejl", "<p>Kunne ikke hente leaderboard.</p>", [{ text: "Luk", class: "btn-secondary", action: closeModal }]);
+			}
+		}
+
+        function switchLeaderboardTab(tabName) {
+            const btnHigh = document.getElementById('tab-btn-high');
+            const btnAvg = document.getElementById('tab-btn-avg');
+            const contentHigh = document.getElementById('tab-content-high');
+            const contentAvg = document.getElementById('tab-content-avg');
+
+            if (tabName === 'high') {
+                btnHigh.classList.add('active');
+                btnAvg.classList.remove('active');
+                contentHigh.classList.add('active');
+                contentAvg.classList.remove('active');
+            } else {
+                btnAvg.classList.add('active');
+                btnHigh.classList.remove('active');
+                contentAvg.classList.add('active');
+                contentHigh.classList.remove('active');
+            }
+        }
+
+        document.getElementById('btn-new-game').onclick = handleNewGameRequest;
+        document.getElementById('btn-hint').onclick = handleHintRequest;
+        document.getElementById('btn-menu').onclick = (e) => { e.stopPropagation(); dropdownEl.classList.toggle('active'); };
+        document.addEventListener('click', () => dropdownEl.classList.remove('active'));
+
+        function showMessage(msg) { messageEl.innerText = msg; }
+        function clearMessage() { messageEl.innerText = ''; }
+        function updateScoreDisplay() { scoreEl.innerText = Math.round(score); }
+
+		async function endGame(won) {
+			gameOver = true;
+			updateFocusTile();
+			
+			// Kun til den LOKALE gæste-visning (localStorage). For loggede-ind
+			// brugere bestemmer serveren selv den endelige score ud fra game_id -
+			// se save_score i api.php, som ikke længere stoler på et postet tal.
+			const finalScore = won ? Math.round(score) : 0;
+
+			if (currentUser) {
+				// HVIS LOGGET IND: Gem udelukkende i databasen. Vi sender kun game_id -
+				// serveren slår selv den autoritative score og hints_used op.
+				try {
+					await fetch('api.php?action=save_score', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						credentials: 'same-origin', // VIGTIGT: Sikrer at sessionen sendes med!
+						body: JSON.stringify({ game_id: currentGameId })
+					});
+				} catch (e) {
+					console.error("Fejl ved gemning af score:", e);
+				}
+			} else {
+				// HVIS GÆST: Gem udelukkende lokalt i browseren (kan ikke og behøver
+				// ikke server-valideres, da det aldrig rammer det delte leaderboard).
+				saveLocalStats(won, finalScore, hintsUsed);
+			}
+		}
+
+		function saveLocalStats(won, finalScore, hints) {
+			const stats = JSON.parse(localStorage.getItem('wordle6_stats')) || { 
+				gamesPlayed: 0, 
+				totalScore: 0, 
+				hintsUsed: 0, 
+				highScore: 0 
+			};
+
+			stats.gamesPlayed++;
+			stats.totalScore += finalScore;
+			stats.hintsUsed += hints;
+
+			if (won && finalScore > (stats.highScore || 0)) {
+				stats.highScore = finalScore;
+			}
+
+			localStorage.setItem('wordle6_stats', JSON.stringify(stats));
+		}
+
+		function clearLocalStats() {
+			if (confirm("Er du sikker på, at du vil slette dine lokale statistikdata for Gæst?")) {
+				localStorage.removeItem('wordle6_stats');
+				openStatsModal();
+			}
+		}
+
+		async function openStatsModal() {
+			dropdownEl.classList.remove('active');
+
+			const localStats = JSON.parse(localStorage.getItem('wordle6_stats')) || { 
+				gamesPlayed: 0, 
+				totalScore: 0, 
+				hintsUsed: 0, 
+				highScore: 0 
+			};
+			const localAvg = localStats.gamesPlayed > 0 
+				? (localStats.totalScore / localStats.gamesPlayed).toFixed(1) 
+				: 0;
+
+			let dbStats = null;
+			if (currentUser) {
+				try {
+					const res = await fetch('api.php?action=user_stats', {credentials: 'same-origin'});
+					const data = await res.json();
+					if (data.logged_in && data.stats) {
+						dbStats = data.stats;
+					}
+				} catch (e) {
+					console.error("Kunne ikke hente brugerstatistik fra server:", e);
+				}
+			}
+
+			let html = `<div style="max-height: 320px; overflow-y: auto; padding-right: 16px;">`;
+
+			if (localStats.gamesPlayed > 0) {
+				html += `
+					<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #555; margin-bottom: 8px; padding-bottom: 4px;">
+						<h4 style="color: #555; margin: 0;">Gæst (på denne enhed)</h4>
+						<a href="#" onclick="clearLocalStats(); return false;" style="color: #e53935; font-size: 0.8rem; font-weight: bold; text-decoration: none;">(Slet)</a>
+					</div>
+					<div class="points_hints"><b>Spillede spil:</b> <span>${localStats.gamesPlayed}</span></div>
+					<div class="points_hints"><b>Brugte hints:</b> <span>${localStats.hintsUsed}</span></div>
+					<div class="points_hints"><b>Max-score:</b> <span>${localStats.highScore || 0} point</span></div>
+					<div class="points_hints" style="margin-bottom: 16px;"><b>Gennemsnit:</b> <span>${localAvg} point</span></div>
+				`;
+			}
+
+			if (currentUser && dbStats) {
+				html += `
+					<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2196f3; margin-top: ${localStats.gamesPlayed > 0 ? '12px' : '0px'}; margin-bottom: 8px; padding-bottom: 4px;">
+						<h4 style="margin: 0; color: #2196f3;">${currentUser}</h4>
+						<a href="#" onclick="openDeleteAccountModal(); return false;" style="color: #e53935; font-size: 0.8rem; font-weight: bold; text-decoration: none;">(Slet)</a>
+					</div>
+					<div class="points_hints"><b>Spillede spil:</b> <span>${dbStats.games_played}</span></div>
+					<div class="points_hints"><b>Brugte hints:</b> <span>${dbStats.hints_used}</span></div>
+					<div class="points_hints"><b>Max-score:</b> <span>${dbStats.high_score} point</span></div>
+					<div class="points_hints"><b>Gennemsnit:</b> <span>${dbStats.avg_score} point</span></div>
+				`;
+			}
+
+			if (!currentUser) {
+				html += `
+					<p style="font-size: 0.82rem; color: #777; margin-top: 12px; font-style: italic;">
+						Tip: Log ind eller opret en bruger for at gemme din statistik online og deltage på Top-100 listen.
+					</p>
+				`;
+			}
+
+			html += `</div>`;
+
+			showModal("Statistik & Point", html, [{ text: "Luk", class: "btn-primary", action: closeModal }]);
+		}
+		
+		
+
+        function openAboutModal() {
+            dropdownEl.classList.remove('active');
+            showModal("Om WordleX 6", "<p>Wordle med 6 bogstaver og 7 forsøg, udvidet med point og Top-100.</p><br><p>Idé og vibe-kode: Thomas Jensen</p><br><p>Kontakt: <a href='mailto:wordlex@rpix.dk'>wordlex@rpix.dk</a></p>", [{ text: "Luk", class: "btn-secondary", action: closeModal }]);
+        }
+				//~ <br><p> Prøv også almindelig: <a href='https://wordlex.dk'>WordleX</a></p>
+				
+		function openHelpModal() {
+			dropdownEl.classList.remove('active');
+			
+			const html = `
+				<div style="line-height: 1.5; font-size: 0.9rem; color: #333;">
+					<p><strong>WordleX</strong> er et gratis dansk ordspil online. Gæt det hemmelige ord på <strong>6 bogstaver</strong> på maksimalt 7 forsøg.</p>
+					
+					<h4 style="margin-top: 12px; margin-bottom: 6px; font-size: 0.95rem; color: #1a1a1a;">Sådan spiller du:</h4>
+					<ul style="padding-left: 18px; margin-bottom: 12px;">
+						<li><b style="color: #4caf50;">Grøn:</b> Bogstavet er i ordet og placeret korrekt.</li>
+						<li><b style="color: #fbc02d;">Gul:</b> Bogstavet findes i ordet, men sidder på en anden plads.</li>
+						<li><b style="color: #757575;">Grå:</b> Bogstavet indgår ikke i ordet.</li>
+					</ul>
+
+					<h4 style="margin-top: 12px; margin-bottom: 6px; font-size: 0.95rem; color: #1a1a1a;">Wordle med Point:</h4>
+					<p>I WordleX optjener du point for hver grøn og gul brik, du gætter, og du betaler med point for at få vist ordlisten. Prisen afhænger at antallet af allerede fundne bogstaver.</p>
+					
+					<h4 style="margin-top: 12px; margin-bottom: 6px; font-size: 0.95rem; color: #1a1a1a;">Brug for et tip?</h4>
+					<p>Start gerne med et ord med mange vokaler. Hvis du går i stå, kan du benytte <img src="images/lightbulb.png" alt="Hint" class="inline-icon">-ikonet til at få hints mod point.</p>
+				</div>
+			`;
+
+			showModal("Hjælp & Regler", html, [{ text: "Luk", class: "btn-primary", action: closeModal }]);
+		}
+
+		function openWModal() {
+			dropdownEl.classList.remove('active');
+			
+			const html = `
+				<div style="line-height: 1.5; font-size: 0.9rem; color: #333;">
+					<p><strong>WordleX</strong> er den almindelige version af WordleX, hvor man skal finde et ord på 5 bogstaver og man har 6 forsøg. </p>
+				</div>`;
+
+			showModal("Prøv WordleX", html, [{ text: "Nej tak", class: "btn-secondary", action: closeModal }, { text: "Prøv WordleX", class: "btn-primary", action: () => window.location.href = "https://wordlex.dk" }]);
+		}
+		
+        function showModal(title, bodyHtml, buttons) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = bodyHtml;
+            const footer = document.getElementById('modal-footer');
+            footer.innerHTML = '';
+            buttons.forEach(b => {
+                const btn = document.createElement('button');
+                btn.className = `btn ${b.class}`;
+                btn.innerText = b.text;
+                btn.onclick = b.action;
+                footer.appendChild(btn);
+            });
+            document.getElementById('modal').classList.add('active');
+        }
+
+		function openDeleteAccountModal() {
+			closeModal();
+
+			const html = `
+				<p style="margin-bottom: 12px;">Vælg hvad du ønsker at slette for kontoen <b>${currentUser}</b>:</p>
+				<div style="display: flex; flex-direction: column; gap: 10px;">
+					<label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+						<input type="radio" name="delete_option" value="stats_only" checked style="margin-top: 3px;">
+						<span><b>Nulstil kun statistik & point</b></span>
+					</label>
+					<label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+						<input type="radio" name="delete_option" value="full_delete" style="margin-top: 3px;">
+						<span style="color: #d32f2f;"><b>Slet kontoen helt</b></span>
+					</label>
+				</div>
+			`;
+
+			showModal("Slet database-data", html, [
+				{ text: "Annuller", class: "btn-secondary", action: closeModal },
+				{ text: "Udfør sletning", class: "btn-primary", action: confirmDataDeletion }
+			]);
+		}
+
+		async function confirmDataDeletion() {
+			const selectedOption = document.querySelector('input[name="delete_option"]:checked')?.value || 'stats_only';
+
+			try {
+				const res = await fetch('api.php?action=delete_account', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ type: selectedOption })
+				});
+				const data = await res.json();
+
+				closeModal();
+
+				if (data.success) {
+					if (data.action === 'deleted_user') {
+						localStorage.removeItem('wordlex6_user');
+						await checkAuthStatus();
+						showMessage(data.message);
+					} else {
+						showMessage(data.message);
+						openStatsModal();
+					}
+				} else {
+					showMessage(data.message || "Der opstod en fejl under sletningen.");
+				}
+			} catch (e) {
+				showMessage("Netværksfejl under sletning.");
+			}
+		}
+
+		// Ny version URL
+
+const OLD_VERSION_URL = 'https://old6.wordlex.dk';
+
+function checkVersionRedirectOrShowModal() {
+    // Hvis du tilgår w6.wordlex.dk?reset_version=1, slettes gemte valg
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('reset_version')) {
+        localStorage.removeItem('wordlex6_version_choice'); // Ret her
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const savedChoice = localStorage.getItem('wordlex6_version_choice'); // Ret her
+
+    if (savedChoice === 'new') {
+        return;
+    }
+
+    if (savedChoice === 'old') {
+        window.location.href = OLD_VERSION_URL;
+        return;
+    }
+
+    setTimeout(() => {
+        const modal = document.getElementById('version-modal');
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }, 300);
+}
+
+function handleVersionChoice(choice) {
+    const rememberChoice = document.getElementById('remember-version-choice').checked;
+
+    if (rememberChoice) {
+        // Gem brugerens valg i lokal browser-lagring specifik for 6-bogstaver
+        localStorage.setItem('wordlex6_version_choice', choice); // Ret her
+    }
+
+    if (choice === 'new') {
+        // Luk modalen og lad brugeren blive på siden
+        document.getElementById('version-modal').classList.remove('active');
+    } else {
+        // Viderestil til gammel version
+        handleLogout();
+        window.location.href = OLD_VERSION_URL;
+    }
+}
+		
+        function closeModal() { document.getElementById('modal').classList.remove('active'); }
+		
+		async function initApp() {
+			
+			checkVersionRedirectOrShowModal();
+			
+			await checkAuthStatus();
+			startNewGame();
+		}
+		initApp();
+    </script>
+    
+		<!-- Opdaterings / Version Pop-up Modal -->
+<div class="modal" id="version-modal">
+    <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-header" style="margin-bottom: 12px;">
+            <h3 style="margin: 0; font-size: 1.3rem;">WordleX er blevet opdateret!</h3>
+        </div>
+        <div id="version-modal-body" style="line-height: 1.5; font-size: 0.92rem; color: #333;">
+            <p style="margin-bottom: 10px;">
+                Point bliver nu tildelt på en mere retfærdig måde, og held bliver belønnet mindre end tidligere. Desværre betyder det også, at den gamle highscore-liste skal nulstilles...
+            </p>
+            <p style="margin-bottom: 10px;">
+                Man kan fortsætte med den gamle version frem til 1. september, så man lige kan nå at lave et skærmbillede af highscore-listen. Herefter flyttes den til <code>old6.wordlex.dk</code>, og vil ikke blive vedligeholdt.
+            </p>
+          
+            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #eee;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: #555;">
+                    <input type="checkbox" id="remember-version-choice" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Husk mit valg på denne enhed</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 18px; display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="btn btn-secondary" style="padding: 8px 12px; cursor: pointer;" onclick="handleVersionChoice('old')">Behold gammel version</button>
+            <button class="btn btn-primary" style="padding: 8px 12px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="handleVersionChoice('new')">Prøv ny version</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
