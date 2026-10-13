@@ -109,7 +109,7 @@
 
 		function editFormHtml(exists, lock) {
 			const perm = info.permission;
-			const title = exists ? 'Skift status' : 'Foreslå ordet';
+			const title = exists ? 'Skift status' : 'Foreslå eller afvis ordet';
 
 			if (lock && !info.is_admin) {
 				return `<h2>${title}</h2><p class="muted">Ordet er låst.</p>`;
@@ -119,14 +119,13 @@
 				return `<h2>${title}</h2><p class="muted">${esc(perm.reason)}${login}</p>`;
 			}
 
-			// Et nyt ord kan kun tilføjes som almindeligt eller sjældent
-			const options = (exists ? ['common', 'rare', 'deleted'] : ['common', 'rare'])
+			const options = ['common', 'rare', 'deleted']
 				.filter(s => s !== info.status)
 				.map(s => `<label><input type="radio" name="status" value="${s}"> ${statusBadge(s)}</label>`).join('');
 
 			return `
 				<h2>${title}</h2>
-				<p class="muted">${exists ? 'Vælg ny status og begrund ændringen.' : 'Ordet findes ikke i ordlisten. Vælg om det skal være almindeligt eller sjældent, og begrund forslaget.'}</p>
+				<p class="muted">${exists ? 'Vælg ny status og begrund ændringen.' : 'Ordet findes ikke i ordlisten. Vælg om det skal være almindeligt eller sjældent, eller markér det som slettet, så det ikke længere står blandt de ord, spillerne savner. Begrund dit valg.'}</p>
 				<div class="status-options">${options}</div>
 				<textarea id="comment" maxlength="500" placeholder="Begrundelse (mindst ${me.min_comment_length} tegn)"></textarea>
 				<div id="edit-error" class="error"></div>

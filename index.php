@@ -183,7 +183,7 @@ $games = [
 							<li>
 								<div class="word-row">
 									<a class="word" href="<?= h(WIKI_URL . 'ord.html?ord=' . rawurlencode($e['word']) . '#e' . $e['id']) ?>"><?= h($e['word']) ?></a>
-									<?= $e['from_status'] === null ? 'tilføjet som ' . badge($e['to_status']) : badge($e['from_status']) . ' → ' . badge($e['to_status']) ?>
+									<?= $e['from_status'] === null && $e['to_status'] !== 'deleted' ? 'tilføjet som ' . badge($e['to_status']) : badge($e['from_status']) . ' → ' . badge($e['to_status']) ?>
 								</div>
 								<div class="edit-meta">af <?= $e['username'] !== null ? h($e['username']) : '<i>slettet bruger</i>' ?>, <?= h(date('j/n Y', strtotime($e['created_at']))) ?></div>
 							</li>

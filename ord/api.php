@@ -323,13 +323,12 @@ if ($action === 'edit') {
     if ($oldStatus === $newStatus) {
         fail('Ordet har allerede den status.');
     }
-    if ($oldStatus === null && $newStatus === 'deleted') {
-        fail('Ordet findes ikke i ordlisten.');
-    }
 
     $db = variantDb($length);
     try {
         if ($oldStatus === null) {
+            // Et ord, der ikke findes, kan også markeres som slettet. Så står det
+            // i ordlisten som afvist og forsvinder fra listen over savnede ord.
             $stmt = $db->prepare("INSERT INTO words (word, status) VALUES (:w, :s)");
             $stmt->execute([':w' => $word, ':s' => $newStatus]);
             $stmt = $db->prepare("DELETE FROM userwords WHERE word = :w");

@@ -30,9 +30,9 @@ function statusBadge(status) {
 	return `<span class="badge badge-${esc(status)}">${esc(STATUS_LABELS[status] || status)}</span>`;
 }
 
-// "fra → til" for en ændring. from_status = null betyder at ordet blev tilføjet.
+// "fra → til" for en ændring. from_status = null betyder at ordet ikke fandtes i forvejen.
 function changeText(edit) {
-	if (edit.from_status === null) return `Tilføjet som ${statusBadge(edit.to_status)}`;
+	if (edit.from_status === null && edit.to_status !== 'deleted') return `Tilføjet som ${statusBadge(edit.to_status)}`;
 	return `${statusBadge(edit.from_status)} → ${statusBadge(edit.to_status)}`;
 }
 
