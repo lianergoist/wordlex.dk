@@ -161,6 +161,12 @@
 		});
 		loadList(true);
 		loadMissing();
+
+		// Med tilbage-knappen viser browseren den gemte side fra før en redigering,
+		// så login og listerne hentes igen
+		window.addEventListener('pageshow', e => {
+			if (e.persisted) { loadMe(); loadList(true); loadMissing(); }
+		});
 	</script>
 </body>
 </html>
