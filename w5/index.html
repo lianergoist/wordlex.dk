@@ -57,6 +57,7 @@
 		header { display: flex; justify-content: space-between; align-items: center; padding: 4px 12px; border-bottom: 1px solid #e0e0e0; background: #fff; height: clamp(36px, 8vh, 48px); flex-shrink: 0; }
 		.header-left { display: flex; align-items: center; gap: 12px; }
 		h1 { font-size: clamp(1.1rem, 2vh, 1.4rem); font-weight: 800; letter-spacing: -0.5px; }
+		h1 a { color: inherit; text-decoration: none; }
 		.score-badge { background: #f0f0f5; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: #555; }
 		.user-status { font-size: 0.8rem; color: #2196f3; font-weight: 600; }
 
@@ -379,7 +380,7 @@
 
     <header>
         <div class="header-left">
-            <h1>WordleX</h1>
+            <h1><a id="home-link" href="https://wordlex.dk/" title="Til forsiden">WordleX</a></h1>
             <div class="score-badge">Point: <span id="current-score">0</span></div>
             <div class="user-status" id="user-status" onclick="openLoginModal()">Gæst</div>
         </div>
@@ -392,6 +393,7 @@
 				<button onclick="openLeaderboardModal()">Top-100</button>
 				<button onclick="openStatsModal()">Statistik & Point</button>
 				<button onclick="openW6Modal()">Prøv Wordle 6</button>
+				<button onclick="window.location.href = document.getElementById('home-link').href">Forside</button>
 				<button onclick="openWiki()">Ordbog</button>
 				<button onclick="openHelpModal()">Hjælp & Regler</button>
 				<button onclick="openAboutModal()">Om WordleX</button>
@@ -478,6 +480,7 @@
                 const res = await fetch('api.php?action=me');
                 const data = await res.json();
                 wikiUrl = data.wiki_url || null;
+                if (data.site_url) document.getElementById('home-link').href = data.site_url;
                 if (data.logged_in) {
                     currentUser = data.username;
                     userStatusEl.innerText = currentUser;

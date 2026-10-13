@@ -93,8 +93,8 @@ function handleAuthAction(string $action, PDO $shared, ?int $variant = null): vo
     if ($action === 'me') {
         $user = currentUser($shared);
         echo json_encode($user
-            ? ['logged_in' => true, 'username' => $user['username'], 'is_admin' => isAdmin($user), 'wiki_url' => WIKI_URL]
-            : ['logged_in' => false, 'wiki_url' => WIKI_URL]);
+            ? ['logged_in' => true, 'username' => $user['username'], 'is_admin' => isAdmin($user), 'wiki_url' => WIKI_URL, 'site_url' => SITE_URL]
+            : ['logged_in' => false, 'wiki_url' => WIKI_URL, 'site_url' => SITE_URL]);
         exit;
     }
 
