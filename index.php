@@ -121,6 +121,7 @@ $games = [
 			<nav class="dropdown" id="menu">
 				<button id="menu-login">Log ind / Opret</button>
 				<a href="<?= h(WIKI_URL) ?>">Ordbog</a>
+				<a href="<?= h(SITE_URL) ?>statistik.php">Statistik</a>
 				<button id="menu-help">Hjælp &amp; regler</button>
 				<button id="menu-about">Om WordleX</button>
 			</nav>
@@ -168,6 +169,7 @@ $games = [
 					<?php endforeach; ?>
 					<div class="card stat"><b><?= number_format($stats['edits'], 0, ',', '.') ?></b><span>ændringer fra spillerne</span></div>
 				</div>
+				<p class="muted"><a href="<?= h(SITE_URL) ?>statistik.php">Se hvor meget der bliver spillet</a></p>
 			<?php endif; ?>
 
 			<?php if ($recent): ?>
