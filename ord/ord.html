@@ -109,10 +109,10 @@
 
 		function editFormHtml(exists, lock) {
 			const perm = info.permission;
-			// Forklaring af de tre statusser over overskriften
+			// Overskrift med forklaring af de tre statusser under
 			const legend = '<ul class="status-legend">' + Object.keys(STATUS_HELP)
 				.map(s => `<li>${statusBadge(s)} ${esc(STATUS_HELP[s])}</li>`).join('') + '</ul>';
-			const heading = legend + `<h2>${exists ? 'Skift status' : 'Foreslå eller afvis ordet'}</h2>`;
+			const heading = `<h2>${exists ? 'Skift status' : 'Foreslå eller afvis ordet'}</h2>` + legend;
 
 			if (lock && !info.is_admin) {
 				return `${heading}<p class="muted">Ordet er låst.</p>`;
@@ -128,7 +128,7 @@
 
 			return `
 				${heading}
-				<p class="muted">${exists ? 'Vælg ny status og begrund ændringen.' : 'Ordet findes ikke i ordlisten. Vælg om det skal være almindeligt eller sjældent, eller markér det som slettet, så det ikke længere står blandt de ord, spillerne savner. Begrund dit valg.'}</p>
+				${exists ? '<p class="muted">Vælg ny status og begrund ændringen.</p>' : ''}
 				<div class="status-options">${options}</div>
 				<textarea id="comment" maxlength="500" placeholder="Begrundelse (mindst ${me.min_comment_length} tegn)"></textarea>
 				<div id="edit-error" class="error"></div>
