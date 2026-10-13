@@ -1162,14 +1162,18 @@
 
         // Besked med et link til et ord i ordbogen (åbnes i ny fane, så spillet ikke går tabt)
         function showMessageWithWordLink(msg, linkText, word) {
-            messageEl.textContent = msg + ' ';
+            messageEl.textContent = msg;
             if (!wikiUrl) return;
+            // Tekst og link i ét element - ellers fjerner flexboxen mellemrummet imellem
+            const span = document.createElement('span');
+            span.textContent = msg + ' ';
             const a = document.createElement('a');
             a.href = wikiUrl + 'ord.html?ord=' + encodeURIComponent(word);
             a.target = '_blank';
             a.rel = 'noopener';
             a.textContent = linkText;
-            messageEl.appendChild(a);
+            span.appendChild(a);
+            messageEl.replaceChildren(span);
         }
 
         function openWiki() {
