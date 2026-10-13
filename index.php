@@ -159,7 +159,7 @@ $games = [
 				<li><?= badge('rare') ?> accepteres som gæt, men er aldrig løsningsord</li>
 				<li><?= badge('deleted') ?> accepteres ikke som gæt</li>
 			</ul>
-			<p>Har du en konto og har spillet mindst <?= MIN_GAMES_TO_EDIT ?> spil, kan du ændre et ords status eller foreslå nye ord. Du skal altid skrive, hvorfor. Alle ændringer bliver gemt, så alle kan se, hvem der har ændret hvad og hvorfor – og ændre det igen. Er du uenig i en ændring eller i en brugers adfærd, kan du anmelde den til admin.</p>
+			<p><?= MIN_GAMES_TO_EDIT > 0 ? 'Har du en konto og har spillet mindst ' . MIN_GAMES_TO_EDIT . ' spil' : 'Har du en konto' ?>, kan du ændre et ords status eller foreslå nye ord. Du skal altid skrive, hvorfor. Alle ændringer bliver gemt, så alle kan se, hvem der har ændret hvad og hvorfor – og ændre det igen. Er du uenig i en ændring eller i en brugers adfærd, kan du anmelde den til admin.</p>
 
 			<?php if ($stats): ?>
 				<div class="stats">
