@@ -247,7 +247,7 @@ function buildConstraintsFromGuesses(string $secret, array $guesses): array {
  * for ens, så LIKE kan matche forkert. mb_-funktionerne arbejder direkte på
  * UTF-8-strengen og er uafhængige af kolonnens collation.
  *
- * @param bool $onlyCommon Når true, kun is_common = 1 (puljen af løsningsord).
+ * @param bool $onlyCommon Når true, kun is_common = 1 (puljen af løsningsord, som hint-listen bruger).
  * @return string[] Matchende ord (store bogstaver, unikke)
  */
 function getMatchingWords(PDO $pdo, array $constraints, bool $onlyCommon = false): array {
@@ -725,17 +725,16 @@ if ($action === 'get_matching_words' || $action === 'count_matching_words') {
         exit;
     }
 
+    // Kun løsningsord (is_common = 1) - samme ord som prisen er beregnet ud fra.
     $constraints = buildConstraintsFromGuesses(mb_strtoupper($game['secret_word'], 'UTF-8'), $game['history']);
-    $commonCount = count(getMatchingWords($pdo, $constraints, true));
-    $price = hintPrice($commonCount);
+    $words = getMatchingWords($pdo, $constraints, true);
+    $price = hintPrice(count($words));
 
     if ($action === 'count_matching_words') {
         // Kun forhåndsvisning - trækker ikke point.
-        echo json_encode(['count' => $commonCount, 'price' => $price]);
+        echo json_encode(['count' => count($words), 'price' => $price]);
         exit;
     }
-
-    $words = getMatchingWords($pdo, $constraints);
 
     $stmtUpdate = $pdo->prepare("UPDATE games SET total_score = total_score - :price, hints_used = hints_used + 1 WHERE game_id = :id");
     $stmtUpdate->execute([':price' => $price, ':id' => $game['game_id']]);
