@@ -19,18 +19,18 @@ try {
     throw new \PDOException($e->getMessage(), (int)$e->getCode());
 }
 
-// 2. Seneste 24 timer (opdateret med last_game_at)
+// 2. Seneste 24 timer (spillere = loggede-ind brugere med mindst ét gæt)
 $stmtGames24h = $pdo->query("SELECT COUNT(*) AS total_games FROM games WHERE created_at > NOW() - INTERVAL 1 DAY AND attempts > 0");
 $games24h = $stmtGames24h->fetch()['total_games'];
 
-$stmtUsers24h = $pdo->query("SELECT COUNT(*) AS total_users FROM users WHERE last_game_at > NOW() - INTERVAL 1 DAY");
+$stmtUsers24h = $pdo->query("SELECT COUNT(DISTINCT user_id) AS total_users FROM games WHERE user_id IS NOT NULL AND attempts > 0 AND created_at > NOW() - INTERVAL 1 DAY");
 $users24h = $stmtUsers24h->fetch()['total_users'];
 
 // 3. Seneste 7 dage samlet
 $stmtGames7d = $pdo->query("SELECT COUNT(*) AS total_games FROM games WHERE created_at > NOW() - INTERVAL 7 DAY AND attempts > 0");
 $games7d = $stmtGames7d->fetch()['total_games'];
 
-$stmtUsers7d = $pdo->query("SELECT COUNT(*) AS total_users FROM users WHERE last_game_at > NOW() - INTERVAL 7 DAY");
+$stmtUsers7d = $pdo->query("SELECT COUNT(DISTINCT user_id) AS total_users FROM games WHERE user_id IS NOT NULL AND attempts > 0 AND created_at > NOW() - INTERVAL 7 DAY");
 $users7d = $stmtUsers7d->fetch()['total_users'];
 
 // 4. Hent daglig aktivitet for de seneste 7 dage til grafen
@@ -45,10 +45,10 @@ $dailyGamesRaw = $stmtDailyGames->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Hent aktive spillere pr. dag
 $stmtDailyUsers = $pdo->query("
-    SELECT DATE(last_game_at) AS user_date, COUNT(*) AS users_count
-    FROM users
-    WHERE last_game_at >= CURDATE() - INTERVAL 6 DAY
-    GROUP BY DATE(last_game_at)
+    SELECT DATE(created_at) AS user_date, COUNT(DISTINCT user_id) AS users_count
+    FROM games
+    WHERE user_id IS NOT NULL AND attempts > 0 AND created_at >= CURDATE() - INTERVAL 6 DAY
+    GROUP BY DATE(created_at)
 ");
 $dailyUsersRaw = $stmtDailyUsers->fetchAll(PDO::FETCH_KEY_PAIR);
 

@@ -2,46 +2,30 @@
 // lib/api.php - fælles API for alle WordleX-udgaver (5 og 6 bogstaver).
 //
 // Filen kaldes ikke direkte. Hver udgave har sin egen tynde api.php (fx
-// w5/api.php), der definerer konstanterne herunder og derefter inkluderer
-// denne fil:
-//   WORDLEX_DB     - databasens navn (fx 'wordlex5_dev')
-//   WORD_LENGTH    - antal bogstaver i ordet
-//   MAX_ROWS       - antal forsøg
-//   FALLBACK_WORD  - bruges hvis ordlisten mod forventning er tom
+// w5/api.php), der kun definerer WORD_LENGTH og derefter inkluderer denne
+// fil. Database og antal forsøg slås op i lib/config.php.
 //
 // games-tabellen er den eneste autoritative kilde til point: guess_history
 // gemmer alle gæt, så serveren selv kan genberegne hvad spilleren ved, og
 // save_score stoler aldrig på et tal fra klienten.
 
-if (!defined('WORDLEX_DB') || !defined('WORD_LENGTH') || !defined('MAX_ROWS')) {
+if (!defined('WORD_LENGTH')) {
     http_response_code(404);
     exit;
 }
 
-$lifetime = 30 * 24 * 60 * 60; // 30 dage
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auth.php';
 
-session_set_cookie_params([
-    'lifetime' => $lifetime,
-    'path'     => '/',
-    'secure'   => isset($_SERVER['HTTPS']),
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
+define('MAX_ROWS', VARIANT_ROWS[WORD_LENGTH]);
+define('FALLBACK_WORD', VARIANT_FALLBACK_WORDS[WORD_LENGTH]);
 
-ini_set('session.gc_maxlifetime', $lifetime);
-
-session_start();
+startWordlexSession();
 header('Content-Type: application/json; charset=utf-8');
 
-$host = 'localhost';
-$user = getenv('WORDLEX_DB_USER');
-$pass = getenv('WORDLEX_DB_PASS');
-
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=" . WORDLEX_DB . ";charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $pdo = connectDb(VARIANT_DBS[WORD_LENGTH]);
+    $shared = connectDb(SHARED_DB);
 } catch (PDOException $e) {
     echo json_encode(['error' => 'Databaseforbindelse fejlede']);
     exit;
@@ -67,7 +51,7 @@ const YELLOW_FRACTION = 0.5;
 
 // --- HINT-PRIS ---
 //
-// Prisen afhænger af hvor mange mulige løsningsord (is_common = 1) der er
+// Prisen afhænger af hvor mange mulige løsningsord (status = 'common') der er
 // tilbage ud fra ALT hvad spilleren ved: grønne, gule og udelukkede bogstaver.
 // Serveren regner det selv ud fra guess_history - klientens egne oplysninger
 // bruges ikke, så prisen ikke kan snydes ned. Første tærskel der er
@@ -247,7 +231,7 @@ function buildConstraintsFromGuesses(string $secret, array $guesses): array {
  * for ens, så LIKE kan matche forkert. mb_-funktionerne arbejder direkte på
  * UTF-8-strengen og er uafhængige af kolonnens collation.
  *
- * @param bool $onlyCommon Når true, kun is_common = 1 (puljen af løsningsord, som hint-listen bruger).
+ * @param bool $onlyCommon Når true, kun status = 'common' (puljen af løsningsord, som hint-listen bruger).
  * @return string[] Matchende ord (store bogstaver, unikke)
  */
 function getMatchingWords(PDO $pdo, array $constraints, bool $onlyCommon = false): array {
@@ -265,10 +249,10 @@ function getMatchingWords(PDO $pdo, array $constraints, bool $onlyCommon = false
     $strictlyAbsent = array_diff($absent, $knownChars);
 
     // Grov, byte-baseret forudfiltrering i SQL; den endelige afgørelse sker i PHP.
-    $sql = "SELECT DISTINCT TRIM(word) AS word FROM words WHERE LENGTH(TRIM(word)) BETWEEN "
+    $sql = "SELECT DISTINCT TRIM(word) AS word FROM words WHERE status <> 'deleted' AND LENGTH(TRIM(word)) BETWEEN "
          . WORD_LENGTH . " AND " . (WORD_LENGTH * 4);
     if ($onlyCommon) {
-        $sql .= " AND is_common = 1";
+        $sql .= " AND status = 'common'";
     }
     $candidates = $pdo->query($sql)->fetchAll(PDO::FETCH_COLUMN);
 
@@ -320,109 +304,9 @@ function loadActiveGame(PDO $pdo, string $gameId): ?array {
     return $game;
 }
 
-// --- BRUGER HÅNDTERING ---
+// --- BRUGER HÅNDTERING (fælles konti, se lib/auth.php) ---
 
-if ($action === 'register') {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $username = trim($input['username'] ?? '');
-    $password = $input['password'] ?? '';
-
-    if (mb_strlen($username, 'UTF-8') < 3 || mb_strlen($password, 'UTF-8') < 4 || mb_strlen($username, 'UTF-8') > 20) {
-        echo json_encode(['success' => false, 'message' => 'Brugernavn skal være min. 3 tegn og kodeord min. 4 tegn.']);
-        exit;
-    }
-
-    if (!preg_match('/^[a-zA-Z0-9æøåÆØÅ_\-]+$/u', $username)) {
-        echo json_encode(['success' => false, 'message' => 'Brugernavnet indeholder ugyldige tegn. Brug kun bogstaver, tal, _ eller - .']);
-        exit;
-    }
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :u");
-    $stmt->execute([':u' => $username]);
-    if ($stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'Brugernavnet er optaget.']);
-        exit;
-    }
-
-    $hash = password_hash($password, PASSWORD_BCRYPT);
-    $stmt = $pdo->prepare("INSERT INTO users (username, password_hash) VALUES (:u, :p)");
-    $stmt->execute([':u' => $username, ':p' => $hash]);
-
-    $userId = $pdo->lastInsertId();
-    $_SESSION['user_id'] = $userId;
-    $_SESSION['username'] = $username;
-
-    $stmt = $pdo->prepare("INSERT INTO leaderboard (id, username) VALUES (:id, :u)");
-    $stmt->execute([':id' => $userId, ':u' => $username]);
-
-    echo json_encode(['success' => true, 'username' => $username]);
-    exit;
-}
-
-if ($action === 'login') {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $username = trim($input['username'] ?? '');
-    $password = $input['password'] ?? '';
-
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :u");
-    $stmt->execute([':u' => $username]);
-    $user = $stmt->fetch();
-
-    if ($user && password_verify($password, $user['password_hash'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        echo json_encode(['success' => true, 'username' => $user['username']]);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Forkert brugernavn eller kodeord.']);
-    }
-    exit;
-}
-
-if ($action === 'logout') {
-    session_destroy();
-    echo json_encode(['success' => true]);
-    exit;
-}
-
-if ($action === 'delete_account') {
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Ikke logget ind']);
-        exit;
-    }
-
-    $input = json_decode(file_get_contents('php://input'), true);
-    $type = $input['type'] ?? 'stats_only'; // 'stats_only' eller 'full_delete'
-    $userId = $_SESSION['user_id'];
-
-    if ($type === 'full_delete') {
-        $stmt1 = $pdo->prepare("DELETE FROM leaderboard WHERE id = :uid");
-        $stmt1->execute([':uid' => $userId]);
-
-        $stmt2 = $pdo->prepare("DELETE FROM users WHERE id = :uid");
-        $stmt2->execute([':uid' => $userId]);
-
-        session_destroy();
-        echo json_encode(['success' => true, 'action' => 'deleted_user', 'message' => 'Brugerkonto og statistik er slettet.']);
-    } else {
-        $stmt = $pdo->prepare("
-            UPDATE leaderboard
-            SET games_played = 0, total_score = 0, avg_score = 0, high_score = 0, hints_used = 0
-            WHERE id = :uid
-        ");
-        $stmt->execute([':uid' => $userId]);
-
-        echo json_encode(['success' => true, 'action' => 'reset_stats', 'message' => 'Din statistik i databasen er blevet nulstillet.']);
-    }
-    exit;
-}
-
-if ($action === 'me') {
-    if (isset($_SESSION['user_id'])) {
-        echo json_encode(['logged_in' => true, 'username' => $_SESSION['username']]);
-    } else {
-        echo json_encode(['logged_in' => false]);
-    }
-    exit;
-}
+handleAuthAction($action, $shared, WORD_LENGTH);
 
 // --- SPIL HÅNDTERING ---
 
@@ -447,7 +331,7 @@ function logMissingWord(PDO $pdo, string $word): bool {
 }
 
 if ($action === 'start') {
-    $stmt = $pdo->query("SELECT word FROM words WHERE is_common = 1 ORDER BY RAND() LIMIT 1");
+    $stmt = $pdo->query("SELECT word FROM words WHERE status = 'common' ORDER BY RAND() LIMIT 1");
     $row = $stmt->fetch();
     $secret = $row ? mb_strtoupper(trim($row['word']), 'UTF-8') : FALLBACK_WORD;
 
@@ -463,11 +347,6 @@ if ($action === 'start') {
 
     $stmt = $pdo->prepare("INSERT INTO games (game_id, secret_word, user_id) VALUES (:game_id, :secret, :uid)");
     $stmt->execute([':game_id' => $gameId, ':secret' => $secret, ':uid' => $userId]);
-
-    if (isset($_SESSION['user_id'])) {
-        $stmtUser = $pdo->prepare("UPDATE users SET last_game_at = NOW() WHERE id = :uid");
-        $stmtUser->execute([':uid' => $_SESSION['user_id']]);
-    }
 
     echo json_encode(['game_id' => $gameId]);
     exit;
@@ -489,11 +368,11 @@ if ($action === 'guess') {
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM words WHERE word = :word");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM words WHERE word = :word AND status <> 'deleted'");
     $stmt->execute([':word' => $guess]);
     if ($stmt->fetchColumn() == 0) {
         logMissingWord($pdo, $guess);
-        echo json_encode(['valid' => false, 'message' => 'Ordet findes ikke i ordlisten']);
+        echo json_encode(['valid' => false, 'message' => 'Ordet findes ikke i ordlisten', 'unknown_word' => $guess]);
         exit;
     }
 
@@ -587,10 +466,11 @@ if ($action === 'save_score') {
     $hints = (int)$game['hints_used'];
 
     $stmt = $pdo->prepare("
-        INSERT INTO leaderboard (id, username, games_played, total_score, avg_score, high_score, hints_used)
-        VALUES (:uid, :u, 1, :score, :score, :score, :hints)
+        INSERT INTO leaderboard (id, username, games_played, total_score, avg_score, high_score, hints_used, last_game_at)
+        VALUES (:uid, :u, 1, :score, :score, :score, :hints, NOW())
         ON DUPLICATE KEY UPDATE
             username = VALUES(username),
+            last_game_at = NOW(),
             games_played = games_played + 1,
             total_score = total_score + VALUES(total_score),
             hints_used = hints_used + VALUES(hints_used),
@@ -636,20 +516,18 @@ if ($action === 'user_stats') {
 
 if ($action === 'leaderboard') {
     $stmtHigh = $pdo->query("
-        SELECT u.username, l.games_played, l.high_score, l.avg_score, l.total_score
+        SELECT l.username, l.games_played, l.high_score, l.avg_score, l.total_score
         FROM leaderboard l
-        JOIN users u ON l.id = u.id
-        WHERE l.games_played > 0 AND u.last_game_at > NOW() - INTERVAL 2 WEEK
+        WHERE l.games_played > 0 AND l.last_game_at > NOW() - INTERVAL 2 WEEK
         ORDER BY l.high_score DESC, l.total_score DESC
         LIMIT 100
     ");
     $highScores = $stmtHigh->fetchAll();
 
     $stmtAvg = $pdo->query("
-        SELECT u.username, l.games_played, l.high_score, l.avg_score, l.total_score
+        SELECT l.username, l.games_played, l.high_score, l.avg_score, l.total_score
         FROM leaderboard l
-        JOIN users u ON l.id = u.id
-        WHERE l.games_played > 2 AND u.last_game_at > NOW() - INTERVAL 2 WEEK
+        WHERE l.games_played > 2 AND l.last_game_at > NOW() - INTERVAL 2 WEEK
         ORDER BY l.avg_score DESC, l.games_played DESC
         LIMIT 100
     ");
@@ -666,7 +544,7 @@ if ($action === 'get_random_word') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $gameId = $input['game_id'] ?? '';
 
-    $stmt = $pdo->query("SELECT word FROM words WHERE is_common = 1 ORDER BY RAND() LIMIT 100");
+    $stmt = $pdo->query("SELECT word FROM words WHERE status = 'common' ORDER BY RAND() LIMIT 100");
     $words = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
     // Start-ord uden gentagne bogstaver
@@ -725,7 +603,7 @@ if ($action === 'get_matching_words' || $action === 'count_matching_words') {
         exit;
     }
 
-    // Kun løsningsord (is_common = 1) - samme ord som prisen er beregnet ud fra.
+    // Kun løsningsord (status = 'common') - samme ord som prisen er beregnet ud fra.
     $constraints = buildConstraintsFromGuesses(mb_strtoupper($game['secret_word'], 'UTF-8'), $game['history']);
     $words = getMatchingWords($pdo, $constraints, true);
     $price = hintPrice(count($words));

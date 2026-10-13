@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WordleX Ordbog</title>
+	<link rel="icon" href="../favicon.ico">
+	<link rel="stylesheet" href="ord.css">
+</head>
+<body>
+	<header>
+		<h1><a href="index.html">WordleX Ordbog</a></h1>
+		<nav id="nav"></nav>
+	</header>
+
+	<main id="main">
+		<p class="muted">Henter...</p>
+	</main>
+
+	<script src="ord.js"></script>
+	<script>
+		const word = (new URLSearchParams(location.search).get('ord') || '').trim().toUpperCase();
+		const main = document.getElementById('main');
+		let info = null;
+
+		async function load() {
+			await loadMe();
+			info = await api('word', null, { word });
+			if (!info.success) {
+				main.innerHTML = `<p class="error">${esc(info.message)}</p><p><a href="index.html">Tilbage til ordbogen</a></p>`;
+				return;
+			}
+			document.title = `${info.word} - WordleX Ordbog`;
+			render();
+			if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
+		}
+
+		function render() {
+			const exists = info.status !== null;
+			const lock = info.lock;
+
+			let html = `
+				<section>
+					<div class="word-row">
+						<h2 class="word" style="font-size:1.8rem; margin:0;">${esc(info.word)}</h2>
+						${exists ? statusBadge(info.status) : '<span class="badge badge-deleted">Findes ikke</span>'}
+						${lock ? '<span class="badge badge-locked">Låst</span>' : ''}
+					</div>
+					<p class="muted">${info.length} bogstaver (WordleX ${info.length})${exists ? ' · ' + esc(STATUS_HELP[info.status]) : ''}</p>
+					${info.missing_count > 0 ? `<p class="muted">Spillere har gættet ordet ${info.missing_count} gang${info.missing_count > 1 ? 'e' : ''}, uden at det fandtes i ordlisten.</p>` : ''}
+				</section>`;
+
+			if (lock) {
+				html += `<div class="notice">Ordet er låst af admin${lock.reason ? ': ' + esc(lock.reason) : ''}. Det kan ikke redigeres.</div>`;
+			}
+
+			html += `<section class="card">${editFormHtml(exists, lock)}</section>`;
+
+			if (info.is_admin) {
+				html += `
+					<section class="card" style="margin-top:16px;">
+						<h2>Admin</h2>
+						${lock
+							? `<button class="btn btn-secondary" id="unlock">Lås op</button>`
+							: `<input type="text" id="lock-reason" placeholder="Begrundelse (valgfri)" style="width:100%; margin-bottom:8px;">
+							   <button class="btn btn-secondary" id="lock">Lås ordet</button>`}
+					</section>`;
+			}
+
+			html += `<section style="margin-top:24px;"><h2>Historik</h2>`;
+			if (info.history.length === 0) {
+				html += `<p class="muted">Ingen spillere har ændret ordet endnu.</p>`;
+			} else {
+				html += `<div class="card"><ul class="history">` + info.history.map(h => `
+					<li id="e${h.id}">
+						<div class="edit-meta">${changeText(h)} af ${userLink(h.username)}, ${formatDate(h.created_at)}</div>
+						<div class="comment">${esc(h.comment)}</div>
+						${me.logged_in && h.username !== me.username ? `
+						<div class="history-actions">
+							<button class="link-btn" data-report-edit="${h.id}">Anmeld ændringen</button>
+							${h.username ? `<button class="link-btn" data-report-user="${esc(h.username)}">Anmeld brugeren</button>` : ''}
+						</div>` : ''}
+					</li>`).join('') + `</ul></div>`;
+			}
+			html += `</section>`;
+
+			main.innerHTML = html;
+			bindActions();
+		}
+
+		function editFormHtml(exists, lock) {
+			const perm = info.permission;
+			const title = exists ? 'Skift status' : 'Foreslå ordet';
+
+			if (lock && !info.is_admin) {
+				return `<h2>${title}</h2><p class="muted">Ordet er låst.</p>`;
+			}
+			if (!perm.can_edit) {
+				const login = me.logged_in ? '' : ' <button class="link-btn" onclick="openLogin()">Log ind</button>';
+				return `<h2>${title}</h2><p class="muted">${esc(perm.reason)}${login}</p>`;
+			}
+
+			// Et nyt ord kan kun tilføjes som almindeligt eller sjældent
+			const options = (exists ? ['common', 'rare', 'deleted'] : ['common', 'rare'])
+				.filter(s => s !== info.status)
+				.map(s => `<label><input type="radio" name="status" value="${s}"> ${statusBadge(s)}</label>`).join('');
+
+			return `
+				<h2>${title}</h2>
+				<p class="muted">${exists ? 'Vælg ny status og begrund ændringen.' : 'Ordet findes ikke i ordlisten. Vælg om det skal være almindeligt eller sjældent, og begrund forslaget.'}</p>
+				<div class="status-options">${options}</div>
+				<textarea id="comment" maxlength="500" placeholder="Begrundelse (mindst ${me.min_comment_length} tegn)"></textarea>
+				<div id="edit-error" class="error"></div>
+				<div style="margin-top:8px;"><button class="btn" id="save">Gem</button></div>`;
+		}
+
+		function bindActions() {
+			document.getElementById('save')?.addEventListener('click', async () => {
+				const status = document.querySelector('input[name=status]:checked')?.value;
+				const error = document.getElementById('edit-error');
+				if (!status) { error.textContent = 'Vælg en status.'; return; }
+				const data = await api('edit', { word: info.word, status, comment: document.getElementById('comment').value });
+				if (data.success) load();
+				else error.textContent = data.message;
+			});
+			document.getElementById('lock')?.addEventListener('click', async () => {
+				await api('admin_lock', { word: info.word, locked: true, reason: document.getElementById('lock-reason').value });
+				load();
+			});
+			document.getElementById('unlock')?.addEventListener('click', async () => {
+				await api('admin_lock', { word: info.word, locked: false });
+				load();
+			});
+			main.querySelectorAll('[data-report-edit]').forEach(b =>
+				b.addEventListener('click', () => openReport({ edit_id: Number(b.dataset.reportEdit) })));
+			main.querySelectorAll('[data-report-user]').forEach(b =>
+				b.addEventListener('click', () => openReport({ username: b.dataset.reportUser })));
+		}
+
+		load();
+	</script>
+</body>
+</html>

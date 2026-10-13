@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WordleX Admin</title>
+	<link rel="icon" href="../favicon.ico">
+	<link rel="stylesheet" href="ord.css">
+</head>
+<body>
+	<header>
+		<h1><a href="index.html">WordleX Ordbog</a></h1>
+		<nav id="nav"></nav>
+	</header>
+
+	<main id="main">
+		<p class="muted">Henter...</p>
+	</main>
+
+	<script src="ord.js"></script>
+	<script>
+		const main = document.getElementById('main');
+
+		async function load() {
+			await loadMe();
+			if (!me.is_admin) {
+				main.innerHTML = '<p class="error">Kun for admin.</p>';
+				return;
+			}
+			const data = await api('admin_overview');
+			const open = data.reports.filter(r => r.status === 'open');
+			const closed = data.reports.filter(r => r.status === 'closed');
+
+			main.innerHTML = `
+				<section>
+					<h2>Åbne anmeldelser (${open.length})</h2>
+					<div class="card"><ul class="word-list">${open.length ? open.map(reportHtml).join('') : '<li class="muted">Ingen åbne anmeldelser.</li>'}</ul></div>
+				</section>
+
+				<section>
+					<h2>Blokerede brugere</h2>
+					<p class="muted" style="margin-bottom:8px;">Blokerede brugere kan stadig spille, men ikke redigere ord.</p>
+					<div class="card">
+						<div class="search" style="margin-bottom:10px;">
+							<input type="text" id="block-user" placeholder="Brugernavn" style="text-transform:none;">
+							<button class="btn btn-secondary" id="block">Bloker</button>
+						</div>
+						<ul class="missing-list">${data.blocked_users.map(u => `
+							<li>${userLink(u)} <button class="link-btn" data-unblock="${esc(u)}">Ophæv blokering</button></li>`).join('') || '<li class="muted">Ingen</li>'}
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<h2>Låste ord</h2>
+					<p class="muted" style="margin-bottom:8px;">Lås et ord fra ordets egen side.</p>
+					<div class="card"><ul class="word-list">${data.locks.map(l => `
+						<li>
+							<div class="word-row"><a class="word" href="${wordUrl(l.word)}">${esc(l.word)}</a>
+							<button class="link-btn" data-unlock="${esc(l.word)}">Lås op</button></div>
+							<div class="edit-meta">Låst af ${userLink(l.locked_by)}, ${formatDate(l.locked_at)}</div>
+							${l.reason ? `<div class="comment">${esc(l.reason)}</div>` : ''}
+						</li>`).join('') || '<li class="muted">Ingen</li>'}
+					</ul></div>
+				</section>
+
+				<section>
+					<h2>Lukkede anmeldelser (30 dage)</h2>
+					<div class="card"><ul class="word-list">${closed.map(reportHtml).join('') || '<li class="muted">Ingen</li>'}</ul></div>
+				</section>`;
+
+			bindActions();
+		}
+
+		function reportHtml(r) {
+			const target = r.edit_id
+				? `Ændring af <a class="word" href="${wordUrl(r.word, r.edit_id)}">${esc(r.word)}</a> af ${userLink(r.reported_user)}
+				   <div class="edit-meta">${changeText(r)}: ${esc(r.edit_comment)}</div>`
+				: `Bruger ${userLink(r.reported_user)}`;
+			const blockBtn = r.reported_user
+				? `<button class="link-btn" data-block="${esc(r.reported_user)}" data-blocked="${r.reported_user_blocked ? 1 : 0}">
+				   ${r.reported_user_blocked ? 'Ophæv blokering af' : 'Bloker'} ${esc(r.reported_user)}</button>` : '';
+			const actions = r.status === 'open' ? `
+				<div style="margin-top:8px;">
+					<input type="text" id="res-${r.id}" placeholder="Note (valgfri)" style="width:100%; margin-bottom:6px;">
+					<div class="history-actions">
+						<button class="btn btn-small" data-resolve="${r.id}">Luk anmeldelsen</button>
+						${blockBtn}
+					</div>
+				</div>` : `
+				<div class="edit-meta">Lukket af ${userLink(r.resolved_by)}, ${formatDate(r.resolved_at)}${r.resolution ? ': ' + esc(r.resolution) : ''}</div>`;
+
+			return `
+				<li>
+					<div>${target}</div>
+					<div class="comment"><b>Begrundelse:</b> ${esc(r.reason)}</div>
+					<div class="edit-meta">Anmeldt af ${userLink(r.reporter)}, ${formatDate(r.created_at)}</div>
+					${actions}
+				</li>`;
+		}
+
+		function bindActions() {
+			main.querySelectorAll('[data-resolve]').forEach(b => b.addEventListener('click', async () => {
+				await api('admin_resolve', { report_id: Number(b.dataset.resolve), resolution: document.getElementById('res-' + b.dataset.resolve).value });
+				load();
+			}));
+			main.querySelectorAll('[data-block]').forEach(b => b.addEventListener('click', async () => {
+				await api('admin_block', { username: b.dataset.block, blocked: b.dataset.blocked !== '1' });
+				load();
+			}));
+			main.querySelectorAll('[data-unblock]').forEach(b => b.addEventListener('click', async () => {
+				await api('admin_block', { username: b.dataset.unblock, blocked: false });
+				load();
+			}));
+			main.querySelectorAll('[data-unlock]').forEach(b => b.addEventListener('click', async () => {
+				await api('admin_lock', { word: b.dataset.unlock, locked: false });
+				load();
+			}));
+			document.getElementById('block').addEventListener('click', async () => {
+				const data = await api('admin_block', { username: document.getElementById('block-user').value.trim(), blocked: true });
+				if (!data.success) alert('Brugeren findes ikke (eller er admin).');
+				load();
+			});
+		}
+
+		load();
+	</script>
+</body>
+</html>

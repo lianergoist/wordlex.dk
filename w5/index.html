@@ -392,6 +392,7 @@
 				<button onclick="openLeaderboardModal()">Top-100</button>
 				<button onclick="openStatsModal()">Statistik & Point</button>
 				<button onclick="openW6Modal()">Prøv Wordle 6</button>
+				<button onclick="openWiki()">Ordbog</button>
 				<button onclick="openHelpModal()">Hjælp & Regler</button>
 				<button onclick="openAboutModal()">Om WordleX</button>
 			</div>
@@ -441,6 +442,7 @@
     <script>
         let currentGameId = null;
         let currentUser = null;
+        let wikiUrl = null; // ordbogens adresse - kommer fra api.php?action=me
         let currentRow = 0;
         let currentTile = 0;
         let score = 0;
@@ -475,6 +477,7 @@
             try {
                 const res = await fetch('api.php?action=me');
                 const data = await res.json();
+                wikiUrl = data.wiki_url || null;
                 if (data.logged_in) {
                     currentUser = data.username;
                     userStatusEl.innerText = currentUser;
@@ -709,7 +712,11 @@
 
 				// SCENARIE: Ugyldigt ord -> Ryst linjen!
 				if (!data.valid) {
-					showMessage(data.message || "Ugyldigt ord!");
+					if (data.unknown_word) {
+						showMessageWithWordLink(data.message + '.', 'Foreslå ordet', data.unknown_word);
+					} else {
+						showMessage(data.message || "Ugyldigt ord!");
+					}
 					
 					const currentRowEl = boardEl.children[currentRow];
 					if (currentRowEl) {
@@ -796,10 +803,10 @@
 							'Yes! Du fik ', 
 							'Du nåede det lige! Du fik '
 						];
-						showMessage(`${rowMessages[currentRow]} ${Math.round(score)} point`);
+						showMessageWithWordLink(`${rowMessages[currentRow]} ${Math.round(score)} point.`, 'Om ordet', data.secret_word);
 						endGame(true);
 					} else if (data.is_finished) {
-						showMessage(`Løsningsordet var: ${data.secret_word}`);
+						showMessageWithWordLink(`Løsningsordet var: ${data.secret_word}.`, 'Om ordet', data.secret_word);
 						endGame(false);
 					} else {
 						const isFirstRow = (currentRow === 0);
@@ -1132,6 +1139,23 @@
 
         function showMessage(msg) { messageEl.innerText = msg; }
         function clearMessage() { messageEl.innerText = ''; }
+
+        // Besked med et link til et ord i ordbogen (åbnes i ny fane, så spillet ikke går tabt)
+        function showMessageWithWordLink(msg, linkText, word) {
+            messageEl.textContent = msg + ' ';
+            if (!wikiUrl) return;
+            const a = document.createElement('a');
+            a.href = wikiUrl + 'ord.html?ord=' + encodeURIComponent(word);
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = linkText;
+            messageEl.appendChild(a);
+        }
+
+        function openWiki() {
+            dropdownEl.classList.remove('active');
+            if (wikiUrl) window.location.href = wikiUrl;
+        }
         function updateScoreDisplay() { scoreEl.innerText = Math.round(score); }
 
 		async function endGame(won) {

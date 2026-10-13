@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WordleX Ordbog</title>
+	<link rel="icon" href="../favicon.ico">
+	<link rel="stylesheet" href="ord.css">
+</head>
+<body>
+	<header>
+		<h1><a href="index.html">WordleX Ordbog</a></h1>
+		<nav id="nav"></nav>
+	</header>
+
+	<main>
+		<section>
+			<p>Ordbogen bestemmer, hvilke ord der er med i WordleX, og den styres af spillerne. Ethvert ord har én af tre statusser:</p>
+			<p>
+				<span class="badge badge-common">Almindelig</span> kan blive løsningsord &nbsp;
+				<span class="badge badge-rare">Sjælden</span> accepteres som gæt, men er aldrig løsningsord &nbsp;
+				<span class="badge badge-deleted">Slettet</span> accepteres ikke som gæt
+			</p>
+			<p class="muted">Har du en konto og har spillet mindst 10 spil, kan du ændre et ords status eller foreslå nye ord. Du skal altid begrunde ændringen, og alle ændringer gemmes, så man kan se hvem der har ændret hvad og hvorfor.</p>
+		</section>
+
+		<section>
+			<form class="search" id="search-form">
+				<input type="search" id="search" placeholder="Slå et ord op" autocomplete="off" maxlength="6">
+				<button class="btn" type="submit">Slå op</button>
+			</form>
+			<div id="search-error" class="error"></div>
+		</section>
+
+		<section>
+			<h2 id="list-title">Ord ændret af spillerne</h2>
+			<div class="filters">
+				<select id="filter-length">
+					<option value="">Alle længder</option>
+					<option value="5">5 bogstaver</option>
+					<option value="6">6 bogstaver</option>
+				</select>
+				<select id="filter-status">
+					<option value="">Alle statusser</option>
+					<option value="common">Almindelig</option>
+					<option value="rare">Sjælden</option>
+					<option value="deleted">Slettet</option>
+				</select>
+				<span id="filter-user"></span>
+			</div>
+			<div class="card">
+				<ul class="word-list" id="word-list"></ul>
+			</div>
+			<p style="margin-top:10px; text-align:center;"><button class="btn btn-secondary" id="more" hidden>Vis flere</button></p>
+		</section>
+
+		<section>
+			<h2>Ord spillerne savner</h2>
+			<p class="muted" style="margin-bottom:10px;">Gæt der blev afvist, fordi ordet ikke findes. Klik på et ord for at foreslå det.</p>
+			<div class="columns">
+				<div class="card"><h3 style="font-size:0.95rem; margin-bottom:6px;">5 bogstaver</h3><ul class="missing-list" id="missing-5"></ul></div>
+				<div class="card"><h3 style="font-size:0.95rem; margin-bottom:6px;">6 bogstaver</h3><ul class="missing-list" id="missing-6"></ul></div>
+			</div>
+		</section>
+	</main>
+
+	<script src="ord.js"></script>
+	<script>
+		const params = new URLSearchParams(location.search);
+		const filterUser = params.get('bruger') || '';
+		let page = 0;
+
+		document.getElementById('search-form').addEventListener('submit', e => {
+			e.preventDefault();
+			const word = document.getElementById('search').value.trim().toUpperCase();
+			if (!/^[A-ZÆØÅ]{5,6}$/.test(word)) {
+				document.getElementById('search-error').textContent = 'Skriv et ord på 5 eller 6 bogstaver (A-Å).';
+				return;
+			}
+			location.href = wordUrl(word);
+		});
+
+		if (filterUser) {
+			document.getElementById('list-title').textContent = `Ord ændret af ${filterUser}`;
+			document.getElementById('filter-user').innerHTML =
+				`<a href="index.html">Vis alle brugere</a> · <button class="link-btn" id="report-user">Anmeld ${esc(filterUser)}</button>`;
+			document.getElementById('report-user').onclick = () => openReport({ username: filterUser });
+		}
+
+		['filter-length', 'filter-status'].forEach(id =>
+			document.getElementById(id).addEventListener('change', () => loadList(true)));
+		document.getElementById('more').onclick = () => { page++; loadList(false); };
+
+		async function loadList(reset) {
+			if (reset) page = 0;
+			const data = await api('list', null, {
+				length: document.getElementById('filter-length').value,
+				status: document.getElementById('filter-status').value,
+				user: filterUser,
+				page
+			});
+			const list = document.getElementById('word-list');
+			if (reset) list.innerHTML = '';
+
+			if (reset && data.words.length === 0) {
+				list.innerHTML = '<li class="muted">Ingen ændringer endnu.</li>';
+			}
+			for (const w of data.words) {
+				const e = w.last_edit;
+				const earlier = w.edit_count > 1
+					? ` · <a href="${wordUrl(w.word)}">${w.edit_count - 1} tidligere ændring${w.edit_count > 2 ? 'er' : ''}</a>` : '';
+				const li = document.createElement('li');
+				li.innerHTML = `
+					<div class="word-row">
+						<a class="word" href="${wordUrl(w.word)}">${esc(w.word)}</a>
+						${statusBadge(w.status)}
+						${w.locked ? '<span class="badge badge-locked">Låst</span>' : ''}
+					</div>
+					<div class="edit-meta">${changeText(e)} af ${userLink(e.username)}, ${formatDate(e.created_at)}</div>
+					<div class="comment">${esc(e.comment)}</div>
+					<div class="edit-meta"><a href="${wordUrl(w.word, e.id)}">Se kommentaren</a>${earlier}</div>`;
+				list.appendChild(li);
+			}
+			document.getElementById('more').hidden = !data.has_more;
+		}
+
+		async function loadMissing() {
+			const data = await api('missing');
+			for (const len of [5, 6]) {
+				const rows = data.missing[len] || [];
+				document.getElementById('missing-' + len).innerHTML = rows.length
+					? rows.map(r => `<li><a class="word" href="${wordUrl(r.word)}">${esc(r.word)}</a><span class="muted">${r.count}×</span></li>`).join('')
+					: '<li class="muted">Ingen</li>';
+			}
+		}
+
+		loadMe();
+		loadList(true);
+		loadMissing();
+	</script>
+</body>
+</html>
