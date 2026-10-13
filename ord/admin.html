@@ -34,7 +34,7 @@
 			main.innerHTML = `
 				<section>
 					<h2>Åbne anmeldelser (${open.length})</h2>
-					<div class="card"><ul class="word-list">${open.length ? open.map(reportHtml).join('') : '<li class="muted">Ingen åbne anmeldelser.</li>'}</ul></div>
+					<div class="card scroll"><ul class="word-list">${open.length ? open.map(reportHtml).join('') : '<li class="muted">Ingen åbne anmeldelser.</li>'}</ul></div>
 				</section>
 
 				<section>
@@ -54,7 +54,7 @@
 				<section>
 					<h2>Låste ord</h2>
 					<p class="muted" style="margin-bottom:8px;">Lås et ord fra ordets egen side.</p>
-					<div class="card"><ul class="word-list">${data.locks.map(l => `
+					<div class="card scroll"><ul class="word-list">${data.locks.map(l => `
 						<li>
 							<div class="word-row"><a class="word" href="${wordUrl(l.word)}">${esc(l.word)}</a>
 							<button class="link-btn" data-unlock="${esc(l.word)}">Lås op</button></div>
@@ -66,7 +66,7 @@
 
 				<section>
 					<h2>Lukkede anmeldelser (30 dage)</h2>
-					<div class="card"><ul class="word-list">${closed.map(reportHtml).join('') || '<li class="muted">Ingen</li>'}</ul></div>
+					<div class="card scroll"><ul class="word-list">${closed.map(reportHtml).join('') || '<li class="muted">Ingen</li>'}</ul></div>
 				</section>`;
 
 			bindActions();

@@ -71,7 +71,7 @@
 			if (info.history.length === 0) {
 				html += `<p class="muted">Ingen spillere har ændret ordet endnu.</p>`;
 			} else {
-				html += `<div class="card"><ul class="history">` + info.history.map(h => `
+				html += `<div class="card scroll"><ul class="history">` + info.history.map(h => `
 					<li id="e${h.id}">
 						<div class="edit-meta">${changeText(h)} af ${userLink(h.username)}, ${formatDate(h.created_at)}</div>
 						<div class="comment">${esc(h.comment)}</div>
