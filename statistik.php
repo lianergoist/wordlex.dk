@@ -92,9 +92,25 @@ foreach (['24h' => 'Seneste 24 timer', '7d' => 'Seneste 7 dage'] as $period => $
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Statistik – WordleX</title>
-	<meta name="description" content="Hvor mange spiller WordleX? Spil og aktive spillere de seneste to uger.">
+<title>Statistik – WordleX</title>
+	<meta name="description" content="Hvor mange spiller WordleX? Spil og aktive spillere de seneste to uger i WordleX 5 og WordleX 6.">
+	<link rel="canonical" href="<?= h(SITE_URL) ?>statistik.php">
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="WordleX">
+	<meta property="og:locale" content="da_DK">
+	<meta property="og:url" content="<?= h(SITE_URL) ?>statistik.php">
+	<meta property="og:title" content="Statistik – WordleX">
+	<meta property="og:description" content="Hvor mange spiller WordleX? Spil og aktive spillere de seneste to uger i WordleX 5 og WordleX 6.">
+	<meta property="og:image" content="<?= h(SITE_URL) ?>wordlex.png">
+	<meta property="og:image:width" content="896">
+	<meta property="og:image:height" content="420">
+	<meta property="og:image:alt" content="WordleX – dansk Wordle med 5 eller 6 bogstaver">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="Statistik – WordleX">
+	<meta name="twitter:description" content="Hvor mange spiller WordleX? Spil og aktive spillere de seneste to uger i WordleX 5 og WordleX 6.">
+	<meta name="twitter:image" content="<?= h(SITE_URL) ?>wordlex.png">
 	<link rel="icon" href="favicon.ico">
+	<link rel="apple-touch-icon" href="favicon.ico">
 	<link rel="stylesheet" href="ord/ord.css">
 	<style>
 		.viz-root {

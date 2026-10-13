@@ -1,2 +1,4 @@
 User-agent: *
+Disallow: /ord/admin.html
 
+Sitemap: https://wordlex.dk/sitemap.xml

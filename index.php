@@ -52,12 +52,34 @@ $games = [
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>WordleX – Dansk Wordle med point og en ordliste styret af spillerne</title>
-	<meta name="description" content="Spil dansk Wordle med 5 eller 6 bogstaver, optjen point og vær med til at bestemme hvilke ord der er med i spillet.">
+<title>WordleX – Dansk Wordle med point og en ordliste styret af spillerne</title>
+	<meta name="description" content="Spil dansk Wordle med 5 eller 6 bogstaver, optjen point og vær med til at bestemme, hvilke ord der er med i spillet.">
+	<link rel="canonical" href="<?= h(SITE_URL) ?>">
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="WordleX">
+	<meta property="og:locale" content="da_DK">
+	<meta property="og:url" content="<?= h(SITE_URL) ?>">
 	<meta property="og:title" content="WordleX – Dansk Wordle">
-	<meta property="og:description" content="Dansk Wordle med point og en ordliste styret af spillerne.">
-	<meta property="og:image" content="https://w5.wordlex.dk/images/wordlex.png">
+	<meta property="og:description" content="Dansk Wordle med point og en ordliste, som spillerne selv er med til at bestemme over.">
+	<meta property="og:image" content="<?= h(SITE_URL) ?>wordlex.png">
+	<meta property="og:image:width" content="896">
+	<meta property="og:image:height" content="420">
+	<meta property="og:image:alt" content="WordleX – dansk Wordle med 5 eller 6 bogstaver">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="WordleX – Dansk Wordle">
+	<meta name="twitter:description" content="Dansk Wordle med point og en ordliste, som spillerne selv er med til at bestemme over.">
+	<meta name="twitter:image" content="<?= h(SITE_URL) ?>wordlex.png">
 	<link rel="icon" href="favicon.ico">
+	<link rel="apple-touch-icon" href="favicon.ico">
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		"name": "WordleX",
+		"url": "<?= h(SITE_URL) ?>",
+		"inLanguage": "da"
+	}
+	</script>
 	<link rel="stylesheet" href="ord/ord.css">
 	<style>
 		.help h4 { margin: 14px 0 4px; font-size: 0.95rem; }

@@ -4,7 +4,22 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>WordleX Ordbog</title>
+	<meta name="description" content="Se om ordet er med i WordleX, og om det kan være løsningsord.">
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="WordleX">
+	<meta property="og:locale" content="da_DK">
+	<meta property="og:title" content="WordleX Ordbog">
+	<meta property="og:description" content="Se om ordet er med i WordleX, og om det kan være løsningsord.">
+	<meta property="og:image" content="https://wordlex.dk/wordlex.png">
+	<meta property="og:image:width" content="896">
+	<meta property="og:image:height" content="420">
+	<meta property="og:image:alt" content="WordleX – dansk Wordle med 5 eller 6 bogstaver">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="WordleX Ordbog">
+	<meta name="twitter:description" content="Se om ordet er med i WordleX, og om det kan være løsningsord.">
+	<meta name="twitter:image" content="https://wordlex.dk/wordlex.png">
 	<link rel="icon" href="../favicon.ico">
+	<link rel="apple-touch-icon" href="../favicon.ico">
 	<link rel="stylesheet" href="ord.css">
 </head>
 <body data-page="ordbog-ord">
@@ -34,6 +49,7 @@
 				return;
 			}
 			document.title = `${info.word} - WordleX Ordbog`;
+			document.querySelector('meta[name=description]').content = `${info.word}: ${info.length} bogstaver. Se om ordet er med i WordleX ${info.length}, og om det kan være løsningsord.`;
 			render();
 			if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
 		}
