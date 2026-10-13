@@ -292,7 +292,7 @@
 	  }
 	}
 
-	/* Styling til version-pop-up modal */
+	/* Styling til modaler */
 	.modal {
 		display: none; /* Gemt som standard */
 		position: fixed;
@@ -1318,94 +1318,16 @@
 			}
 		}
 
-		// Ny version URL
-
-const OLD_VERSION_URL = 'https://old6.wordlex.dk';
-
-function checkVersionRedirectOrShowModal() {
-    // Hvis du tilgår w6.wordlex.dk?reset_version=1, slettes gemte valg
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('reset_version')) {
-        localStorage.removeItem('wordlex6_version_choice'); // Ret her
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    const savedChoice = localStorage.getItem('wordlex6_version_choice'); // Ret her
-
-    if (savedChoice === 'new') {
-        return;
-    }
-
-    if (savedChoice === 'old') {
-        window.location.href = OLD_VERSION_URL;
-        return;
-    }
-
-    setTimeout(() => {
-        const modal = document.getElementById('version-modal');
-        if (modal) {
-            modal.classList.add('active');
-        }
-    }, 300);
-}
-
-function handleVersionChoice(choice) {
-    const rememberChoice = document.getElementById('remember-version-choice').checked;
-
-    if (rememberChoice) {
-        // Gem brugerens valg i lokal browser-lagring specifik for 6-bogstaver
-        localStorage.setItem('wordlex6_version_choice', choice); // Ret her
-    }
-
-    if (choice === 'new') {
-        // Luk modalen og lad brugeren blive på siden
-        document.getElementById('version-modal').classList.remove('active');
-    } else {
-        // Viderestil til gammel version
-        handleLogout();
-        window.location.href = OLD_VERSION_URL;
-    }
-}
 		
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
 		
 		async function initApp() {
-			
-			checkVersionRedirectOrShowModal();
-			
+
 			await checkAuthStatus();
 			startNewGame();
 		}
 		initApp();
     </script>
     
-		<!-- Opdaterings / Version Pop-up Modal -->
-<div class="modal" id="version-modal">
-    <div class="modal-content" style="max-width: 440px;">
-        <div class="modal-header" style="margin-bottom: 12px;">
-            <h3 style="margin: 0; font-size: 1.3rem;">WordleX er blevet opdateret!</h3>
-        </div>
-        <div id="version-modal-body" style="line-height: 1.5; font-size: 0.92rem; color: #333;">
-            <p style="margin-bottom: 10px;">
-                Point bliver nu tildelt på en mere retfærdig måde, og held bliver belønnet mindre end tidligere. Desværre betyder det også, at den gamle highscore-liste skal nulstilles...
-            </p>
-            <p style="margin-bottom: 10px;">
-                Man kan fortsætte med den gamle version frem til 1. september, så man lige kan nå at lave et skærmbillede af highscore-listen. Herefter flyttes den til <code>old6.wordlex.dk</code>, og vil ikke blive vedligeholdt.
-            </p>
-          
-            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #eee;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: #555;">
-                    <input type="checkbox" id="remember-version-choice" style="width: 18px; height: 18px; cursor: pointer;">
-                    <span>Husk mit valg på denne enhed</span>
-                </label>
-            </div>
-        </div>
-        <div class="modal-footer" style="margin-top: 18px; display: flex; gap: 8px; justify-content: flex-end;">
-            <button class="btn btn-secondary" style="padding: 8px 12px; cursor: pointer;" onclick="handleVersionChoice('old')">Behold gammel version</button>
-            <button class="btn btn-primary" style="padding: 8px 12px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="handleVersionChoice('new')">Prøv ny version</button>
-        </div>
-    </div>
-</div>
-
 </body>
 </html>
