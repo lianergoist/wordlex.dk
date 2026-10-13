@@ -59,9 +59,28 @@
 		h1 { font-size: clamp(1.1rem, 2vh, 1.4rem); font-weight: 800; letter-spacing: -0.5px; }
 		.home-link { display: flex; padding: 4px; margin-left: -4px; border-radius: 4px; }
 		.score-badge { background: #f0f0f5; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: #555; }
-		.user-status { font-size: 0.8rem; color: #2196f3; font-weight: 600; }
+		.user-status { font-size: 0.8rem; color: #2196f3; font-weight: 600; cursor: pointer; margin-right: 4px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-		.header-actions { position: relative; display: flex; gap: 4px; }
+		.header-actions { position: relative; display: flex; align-items: center; gap: 4px; }
+		.score-badge { white-space: nowrap; }
+		/* Når pladsen slipper op, er det brugernavnet der krymper (med …) */
+		.header-left, .header-actions button { flex-shrink: 0; }
+		.header-actions, .user-status { min-width: 0; }
+		@media (max-width: 440px) {
+			header { padding: 4px 8px; }
+			.header-left { gap: 6px; }
+			h1 { white-space: nowrap; }
+			.score-label { display: none; }
+			.header-actions { gap: 0; }
+			.header-actions button { padding: 4px; }
+			.user-status { max-width: 56px; }
+		}
+		@media (max-width: 360px) {
+			h1 { font-size: 1rem; }
+			.home-link { padding: 2px; margin-left: -2px; }
+			.header-actions button { padding: 2px; }
+			.user-status { max-width: 44px; }
+		}
 		.header-actions button { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
 
 		.dropdown-menu { display: none; position: absolute; top: 100%; right: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; min-width: 170px; z-index: 200; overflow: hidden; margin-top: 4px; }
@@ -382,10 +401,10 @@
         <div class="header-left">
             <a id="home-link" class="home-link" href="https://wordlex.dk/" title="Til forsiden"><img src="images/home.svg" alt="Forside"></a>
             <h1>WordleX</h1>
-            <div class="score-badge">Point: <span id="current-score">0</span></div>
-            <div class="user-status" id="user-status" onclick="openLoginModal()">Gæst</div>
+            <div class="score-badge"><span class="score-label">Point: </span><span id="current-score">0</span></div>
         </div>
         <div class="header-actions">
+            <div class="user-status" id="user-status" onclick="openLoginModal()">Gæst</div>
             <button id="btn-new-game" title="Nyt spil"><img src="images/refresh.png"></button>
             <button id="btn-hint" title="Hint"><img src="images/lightbulb.png"></button>
             <button id="btn-menu" title="Menu"><img src="images/more_vert.png"></button>
