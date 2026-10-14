@@ -142,7 +142,7 @@
 				const error = document.getElementById('edit-error');
 				if (!status) { error.textContent = 'Vælg en status.'; return; }
 				const data = await api('edit', { word: info.word, status, comment: document.getElementById('comment').value });
-				if (data.success) load();
+				if (data.success) location.href = 'index.html';
 				else error.textContent = data.message;
 			});
 			document.getElementById('lock')?.addEventListener('click', async () => {
