@@ -248,7 +248,8 @@ if ($action === 'missing') {
     foreach (array_keys(VARIANT_DBS) as $length) {
         $rows = variantDb($length)->query("
             SELECT u.word, u.count FROM userwords u
-            WHERE NOT EXISTS (SELECT 1 FROM words w WHERE w.word = u.word COLLATE utf8mb4_danish_ci)
+            WHERE u.count > 1
+              AND NOT EXISTS (SELECT 1 FROM words w WHERE w.word = u.word COLLATE utf8mb4_danish_ci)
             ORDER BY u.count DESC, u.word
             LIMIT 200
         ")->fetchAll();
