@@ -120,6 +120,8 @@ $games = [
 			.stats { gap: 8px; }
 			.stat b { font-size: 1.15rem; }
 			.hero .tile { width: 36px; height: 36px; font-size: 1.2rem; }
+			footer span { display: block; margin-bottom: 4px; }
+			footer .sep { display: none; }
 		}
 	</style>
 </head>
@@ -172,7 +174,6 @@ $games = [
 					<?php endforeach; ?>
 					<div class="card stat"><b><?= number_format($stats['edits'], 0, ',', '.') ?></b><span>ændringer fra spillerne</span></div>
 				</div>
-				<p class="muted"><a href="<?= h(SITE_URL) ?>statistik.php">Se hvor meget der bliver spillet</a></p>
 			<?php endif; ?>
 
 			<?php if ($recent): ?>
@@ -245,7 +246,7 @@ $games = [
 	</script>
 
 	<footer>
-		Idé og vibe-kode: Thomas Jensen · Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a>
+		<span>Idé og vibe-kode: Thomas Jensen</span><span class="sep"> · </span><span>Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a></span><span class="sep"> · </span><span><a href="<?= h(SITE_URL) ?>statistik.php">Statistik - spil og spillere</a></span>
 	</footer>
 </body>
 </html>
