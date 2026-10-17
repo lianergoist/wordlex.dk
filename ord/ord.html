@@ -67,7 +67,7 @@
 					</div>
 					<p class="muted">${info.length} bogstaver (WordleX ${info.length})${exists ? ' · ' + esc(STATUS_HELP[info.status]) : ''}</p>
 					${info.missing_count > 0 ? `<p class="muted">Spillere har gættet ordet ${info.missing_count} gang${info.missing_count > 1 ? 'e' : ''}, uden at det fandtes i ordlisten.</p>` : ''}
-					<p><a href="https://ordnet.dk/ddo/ordbog/${encodeURIComponent(info.word.toLowerCase())}" target="_blank" rel="noopener">Søg efter ${esc(info.word)} på Den Danske Ordbog</a></p>
+					<p><a href="https://ordnet.dk/ddo/ordbog/${encodeURIComponent(info.word.toLowerCase())}" target="_blank" rel="noopener nofollow">Søg efter ${esc(info.word)} på Den Danske Ordbog</a></p>
 				</section>`;
 
 			if (lock) {
