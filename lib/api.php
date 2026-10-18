@@ -51,11 +51,20 @@ const YELLOW_FRACTION = 0.5;
 
 // --- HINT-PRIS ---
 //
-// Prisen afhænger af hvor mange mulige løsningsord (status = 'common') der er
-// tilbage ud fra ALT hvad spilleren ved: grønne, gule og udelukkede bogstaver.
-// Serveren regner det selv ud fra guess_history - klientens egne oplysninger
-// bruges ikke, så prisen ikke kan snydes ned. Første tærskel der er
-// opfyldt (antal > tærskel) bestemmer prisen.
+// Grundprisen afhænger af hvor mange mulige løsningsord (status = 'common')
+// der er tilbage ud fra ALT hvad spilleren ved: grønne, gule og udelukkede
+// bogstaver. En lang liste hjælper ikke meget, så den er billig. Første
+// tærskel der er opfyldt (antal > tærskel) bestemmer grundprisen.
+//
+// Grundprisen ganges med rækkens værdi i forhold til række 2 (750), så
+// prisen falder i takt med de point der kan vindes: 100 % i række 2, 73 % i
+// række 3, 53 % i række 4 osv.
+//
+// I de sidste rækker er hintet også en forsikring - et tabt spil giver 0
+// point i alt - så dér koster det mindst en andel af den samlede score.
+//
+// Serveren regner alt ud fra guess_history - klientens egne oplysninger
+// bruges ikke, så prisen ikke kan snydes ned.
 const HINT_PRICE_TIERS = [
     200 => 25,  // over 200 mulige ord
     50  => 50,  // 51-200
@@ -63,18 +72,33 @@ const HINT_PRICE_TIERS = [
     2   => 150, // 3-10
     0   => 200, // 1-2
 ];
+const HINT_INSURANCE_ROWS = 2;            // de sidste N rækker
+const HINT_INSURANCE_FRACTION = 0.2;      // andel af spillets samlede score
 
 function rowValue(int $row): float {
     return ROW_VALUES[$row] ?? end(ROW_VALUES);
 }
 
-function hintPrice(int $candidateCount): int {
-    foreach (HINT_PRICE_TIERS as $threshold => $price) {
+function roundToFive(float $points): int {
+    return (int)(round($points / 5) * 5);
+}
+
+function hintPrice(int $candidateCount, int $row, int $totalScore): int {
+    $basePrice = HINT_PRICE_TIERS[0];
+    foreach (HINT_PRICE_TIERS as $threshold => $tierPrice) {
         if ($candidateCount > $threshold) {
-            return $price;
+            $basePrice = $tierPrice;
+            break;
         }
     }
-    return end(HINT_PRICE_TIERS);
+
+    $rowFactor = min(1.0, rowValue($row) / rowValue(1));
+    $price = max(5, roundToFive($basePrice * $rowFactor));
+
+    if ($row >= MAX_ROWS - HINT_INSURANCE_ROWS) {
+        $price = max($price, roundToFive($totalScore * HINT_INSURANCE_FRACTION));
+    }
+    return $price;
 }
 
 function splitWord(string $word): array {
@@ -606,7 +630,7 @@ if ($action === 'get_matching_words' || $action === 'count_matching_words') {
     // Kun løsningsord (status = 'common') - samme ord som prisen er beregnet ud fra.
     $constraints = buildConstraintsFromGuesses(mb_strtoupper($game['secret_word'], 'UTF-8'), $game['history']);
     $words = getMatchingWords($pdo, $constraints, true);
-    $price = hintPrice(count($words));
+    $price = hintPrice(count($words), count($game['history']), (int)$game['total_score']);
 
     if ($action === 'count_matching_words') {
         // Kun forhåndsvisning - trækker ikke point.
