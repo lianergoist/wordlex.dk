@@ -1334,6 +1334,28 @@
 
 			await checkAuthStatus();
 			startNewGame();
+			showHintPriceNews();
+		}
+
+		// Engangsbesked om den nye hintpris (oktober 2026). Vises én gang pr.
+		// browser og slet ikke efter SHOW_UNTIL.
+		function showHintPriceNews() {
+			const STORAGE_KEY = 'wordlex_hint_price_news_2026_10';
+			const SHOW_UNTIL = new Date('2026-12-01T00:00:00');
+			if (new Date() >= SHOW_UNTIL) return;
+			try {
+				if (localStorage.getItem(STORAGE_KEY)) return;
+				localStorage.setItem(STORAGE_KEY, '1');
+			} catch (e) {
+				return; // uden localStorage ville beskeden komme hver gang
+			}
+
+			showModal("Hints er blevet billigere",
+				`<p>Listen over mulige ord koster nu mindre, jo længere du er i spillet – ligesom pointene for et gæt bliver færre. Den er stadig billigst, når der er mange ord tilbage.</p>
+				 <p style="margin-top:8px;">I de sidste to rækker koster listen dog mindst 20 % af din score, fordi et tabt spil giver 0 point.</p>
+				 <p style="margin-top:8px;">Hvad synes du om de nye priser? Skriv gerne til <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a>.</p>`,
+				[{ text: "OK", class: "btn-primary", action: closeModal }]
+			);
 		}
 		initApp();
     </script>
