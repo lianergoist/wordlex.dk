@@ -35,15 +35,10 @@ if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
 define('WIKI_URL', SITE_URL . 'ord/');
 
 // --- VÆRN MOD HÆRVÆRK I ORDBOGEN (gælder ikke admin) ---
-// I testperioden (frem til 1. november 2026) må alle med en konto redigere,
-// så ordbogen kan komme i gang. Derefter kræves der spil bag kontoen.
-if (WORDLEX_ENV === 'test') {
-    define('MIN_GAMES_TO_EDIT', 0);    // afsluttede spil (begge udgaver tilsammen)
-    define('MAX_EDITS_PER_DAY', 100);  // ændringer + nye ord pr. døgn
-} else {
-    define('MIN_GAMES_TO_EDIT', 10);
-    define('MAX_EDITS_PER_DAY', 20);
-}
+// Alle med en konto må redigere, også efter 1. november 2026. Giver det
+// problemer, kan MIN_GAMES_TO_EDIT sættes op (fx 10) – teksterne følger med.
+define('MIN_GAMES_TO_EDIT', 0);        // afsluttede spil (begge udgaver tilsammen)
+define('MAX_EDITS_PER_DAY', WORDLEX_ENV === 'test' ? 100 : 20); // ændringer + nye ord pr. døgn
 
 // Antal forsøg pr. ordlængde
 const VARIANT_ROWS = [5 => 6, 6 => 7];
