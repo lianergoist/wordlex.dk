@@ -557,7 +557,7 @@
     // Hvis et spil er i gang, beder vi om bekræftelse
     showModal("Afbryd spil?", 
         `<p>Er du sikker på, at du vil afbryde det igangværende spil?</p>
-         <p style="margin-top:8px; font-size:0.85rem; color:#666;">Dine nuværende point for runden vil gå tabt.</p>`,
+         <p style="margin-top:8px; font-size:0.85rem; color:#666;">Du beholder de point, du har fået indtil nu, og spillet tæller med i din statistik.</p>`,
         [
             { text: "Nej, fortsæt spil", class: "btn-secondary", action: closeModal },
             { text: "Ja, afbryd spil", class: "btn-primary", action: confirmAbandonGame }
@@ -568,6 +568,9 @@
 		async function confirmAbandonGame() {
 			closeModal();
 			gameOver = true;
+			if (!currentUser && currentRow > 0) {
+				saveLocalStats(Math.max(0, Math.round(score)), hintsUsed);
+			}
 
 			try {
 				const res = await fetch('api.php?action=abandon', {
@@ -826,7 +829,7 @@
 						showMessageWithWordLink(`${rowMessages[currentRow]} ${Math.round(score)} point.`, 'Om ordet', data.secret_word);
 						endGame(true);
 					} else if (data.is_finished) {
-						showMessageWithWordLink(`Løsningsordet var: ${data.secret_word}.`, 'Om ordet', data.secret_word);
+						showMessageWithWordLink(`Løsningsordet var: ${data.secret_word}. Du fik ${Math.max(0, Math.round(score))} point.`, 'Om ordet', data.secret_word);
 						endGame(false);
 					} else {
 						const isFirstRow = (currentRow === 0);
@@ -1185,33 +1188,16 @@
 		async function endGame(won) {
 			gameOver = true;
 			updateFocusTile();
-			
-			// Kun til den LOKALE gæste-visning (localStorage). For loggede-ind
-			// brugere bestemmer serveren selv den endelige score ud fra game_id -
-			// se save_score i api.php, som ikke længere stoler på et postet tal.
-			const finalScore = won ? Math.round(score) : 0;
 
-			if (currentUser) {
-				// HVIS LOGGET IND: Gem udelukkende i databasen. Vi sender kun game_id -
-				// serveren slår selv den autoritative score og hints_used op.
-				try {
-					await fetch('api.php?action=save_score', {
-						method: 'POST',
-						headers: {'Content-Type': 'application/json'},
-						credentials: 'same-origin', // VIGTIGT: Sikrer at sessionen sendes med!
-						body: JSON.stringify({ game_id: currentGameId })
-					});
-				} catch (e) {
-					console.error("Fejl ved gemning af score:", e);
-				}
-			} else {
-				// HVIS GÆST: Gem udelukkende lokalt i browseren (kan ikke og behøver
-				// ikke server-valideres, da det aldrig rammer det delte leaderboard).
-				saveLocalStats(won, finalScore, hintsUsed);
+			// Loggede-ind brugeres point føres over på leaderboardet af serveren
+			// efter hvert gæt (se creditLeaderboard i lib/api.php). Gæster gemmer
+			// kun lokalt i browseren.
+			if (!currentUser) {
+				saveLocalStats(Math.max(0, Math.round(score)), hintsUsed);
 			}
 		}
 
-		function saveLocalStats(won, finalScore, hints) {
+		function saveLocalStats(finalScore, hints) {
 			const stats = JSON.parse(localStorage.getItem('wordle_stats_v2')) || { 
 				gamesPlayed: 0, 
 				totalScore: 0, 
@@ -1223,8 +1209,7 @@
 			stats.totalScore += finalScore;
 			stats.hintsUsed += hints;
 
-			// Gem kun max-score ved vundne spil, hvis scoren er højere end den eksisterende highscore
-			if (won && finalScore > (stats.highScore || 0)) {
+			if (finalScore > (stats.highScore || 0)) {
 				stats.highScore = finalScore;
 			}
 
@@ -1431,7 +1416,7 @@
 
 			showModal("Hints er blevet billigere",
 				`<p>Listen over mulige ord koster nu mindre, jo længere du er i spillet – ligesom pointene for et gæt bliver færre. Den er stadig billigst, når der er mange ord tilbage.</p>
-				 <p style="margin-top:8px;">I de sidste to rækker koster listen dog mindst 20 % af din score, fordi et tabt spil giver 0 point.</p>
+				 <p style="margin-top:8px;">Og gætter du ikke ordet, beholder du nu de point, du har fået.</p>
 				 <p style="margin-top:8px;">Hvad synes du om de nye priser? Skriv gerne til <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a>.</p>`,
 				[{ text: "OK", class: "btn-primary", action: closeModal }]
 			);

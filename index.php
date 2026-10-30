@@ -210,10 +210,10 @@ $games = [
 			</ul>
 
 			<h4>Point</h4>
-			<p>Du får point for hver ny grøn og gul brik – jo tidligere i spillet, jo flere. Gætter du ordet i første forsøg, får du 1.000 point i begge udgaver. En gul er halvt så meget værd som en grøn, og bliver en gul senere grøn, får du forskellen. Kun vundne spil giver point på Top-100.</p>
+			<p>Du får point for hver ny grøn og gul brik – jo tidligere i spillet, jo flere. Gætter du ordet i første forsøg, får du 1.000 point i begge udgaver. En gul er halvt så meget værd som en grøn, og bliver en gul senere grøn, får du forskellen. Du beholder dine point, også hvis du ikke gætter ordet, og alle spil tæller med i dit gennemsnit – også dem, du afbryder.</p>
 
 			<h4>Hints</h4>
-			<p>I første række kan du gratis få et forslag til et startord. Derefter kan du købe en liste over de ord, der stadig er mulige. Prisen stiger, jo færre ord der er tilbage, men falder i hver række, ligesom pointene gør. I de sidste to rækker koster listen dog mindst 20 % af din score, fordi et tabt spil giver 0 point.</p>
+			<p>I første række kan du gratis få et forslag til et startord. Derefter kan du købe en liste over de ord, der stadig er mulige. Prisen stiger, jo færre ord der er tilbage, men falder i hver række, ligesom pointene gør.</p>
 
 			<h4>Konto og Top-100</h4>
 			<p>Med en konto bliver din statistik gemt, og du kommer på Top-100. Den samme konto gælder begge spil og ordbogen.</p>

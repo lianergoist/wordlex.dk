@@ -7,7 +7,8 @@
 //
 // games-tabellen er den eneste autoritative kilde til point: guess_history
 // gemmer alle gæt, så serveren selv kan genberegne hvad spilleren ved, og
-// save_score stoler aldrig på et tal fra klienten.
+// leaderboardet opdateres herfra efter hvert gæt - aldrig ud fra et tal fra
+// klienten.
 
 if (!defined('WORD_LENGTH')) {
     http_response_code(404);
@@ -60,9 +61,6 @@ const YELLOW_FRACTION = 0.5;
 // prisen falder i takt med de point der kan vindes: 100 % i række 2, 73 % i
 // række 3, 53 % i række 4 osv.
 //
-// I de sidste rækker er hintet også en forsikring - et tabt spil giver 0
-// point i alt - så dér koster det mindst en andel af den samlede score.
-//
 // Serveren regner alt ud fra guess_history - klientens egne oplysninger
 // bruges ikke, så prisen ikke kan snydes ned.
 const HINT_PRICE_TIERS = [
@@ -72,8 +70,6 @@ const HINT_PRICE_TIERS = [
     2   => 150, // 3-10
     0   => 200, // 1-2
 ];
-const HINT_INSURANCE_ROWS = 2;            // de sidste N rækker
-const HINT_INSURANCE_FRACTION = 0.2;      // andel af spillets samlede score
 
 function rowValue(int $row): float {
     return ROW_VALUES[$row] ?? end(ROW_VALUES);
@@ -83,7 +79,7 @@ function roundToFive(float $points): int {
     return (int)(round($points / 5) * 5);
 }
 
-function hintPrice(int $candidateCount, int $row, int $totalScore): int {
+function hintPrice(int $candidateCount, int $row): int {
     $basePrice = HINT_PRICE_TIERS[0];
     foreach (HINT_PRICE_TIERS as $threshold => $tierPrice) {
         if ($candidateCount > $threshold) {
@@ -93,12 +89,7 @@ function hintPrice(int $candidateCount, int $row, int $totalScore): int {
     }
 
     $rowFactor = min(1.0, rowValue($row) / rowValue(1));
-    $price = max(5, roundToFive($basePrice * $rowFactor));
-
-    if ($row >= MAX_ROWS - HINT_INSURANCE_ROWS) {
-        $price = max($price, roundToFive($totalScore * HINT_INSURANCE_FRACTION));
-    }
-    return $price;
+    return max(5, roundToFive($basePrice * $rowFactor));
 }
 
 function splitWord(string $word): array {
@@ -328,6 +319,67 @@ function loadActiveGame(PDO $pdo, string $gameId): ?array {
     return $game;
 }
 
+/**
+ * Fører et spils point over på leaderboardet, hver gang de ændrer sig (gæt,
+ * hint, afbrydelse). Et spil tæller med fra første gæt, og man beholder sine
+ * point, også hvis man ikke gætter ordet - så det kan aldrig betale sig at
+ * afbryde eller forlade et spil for at skåne sit gennemsnit.
+ *
+ * $game er rækken FØR ændringen. games.score_saved markerer, at spillet er
+ * talt med; derefter lægges kun forskellen til. Et spil tæller aldrig under 0.
+ * high_score opdateres først, når spillet er slut, da hints kan trække
+ * point fra undervejs.
+ */
+function creditLeaderboard(PDO $pdo, PDO $shared, array $game, int $newTotal, int $newHints, int $attempts, bool $finished): void {
+    if ($game['user_id'] === null || $attempts === 0) {
+        return;
+    }
+
+    $credit = max(0, $newTotal);
+    if ($game['score_saved']) {
+        $games = 0;
+        $scoreDelta = $credit - max(0, (int)$game['total_score']);
+        $hintsDelta = $newHints - (int)$game['hints_used'];
+    } else {
+        $games = 1;
+        $scoreDelta = $credit;
+        $hintsDelta = $newHints;
+        $stmt = $pdo->prepare("UPDATE games SET score_saved = 1 WHERE game_id = :id");
+        $stmt->execute([':id' => $game['game_id']]);
+    }
+
+    $stmt = $shared->prepare("SELECT username FROM users WHERE id = :uid");
+    $stmt->execute([':uid' => $game['user_id']]);
+    $username = $stmt->fetchColumn();
+    if ($username === false) {
+        return; // kontoen er slettet
+    }
+
+    // MySQL tildeler fra venstre mod højre med de nye værdier, så avg_score
+    // skal stå sidst og bruger de netop opdaterede total_score/games_played.
+    $stmt = $pdo->prepare("
+        INSERT INTO leaderboard (id, username, games_played, total_score, avg_score, high_score, hints_used, last_game_at)
+        VALUES (:uid, :u, :games, :score, :avg, :high, :hints, NOW())
+        ON DUPLICATE KEY UPDATE
+            username = VALUES(username),
+            last_game_at = NOW(),
+            games_played = games_played + VALUES(games_played),
+            total_score = total_score + VALUES(total_score),
+            hints_used = hints_used + VALUES(hints_used),
+            high_score = GREATEST(high_score, VALUES(high_score)),
+            avg_score = IF(games_played > 0, total_score / games_played, 0)
+    ");
+    $stmt->execute([
+        ':uid'   => $game['user_id'],
+        ':u'     => $username,
+        ':games' => $games,
+        ':score' => $scoreDelta,
+        ':avg'   => $games > 0 ? $scoreDelta : 0,
+        ':high'  => $finished ? $credit : 0,
+        ':hints' => $hintsDelta,
+    ]);
+}
+
 // --- BRUGER HÅNDTERING (fælles konti, se lib/auth.php) ---
 
 handleAuthAction($action, $shared, WORD_LENGTH);
@@ -427,6 +479,7 @@ if ($action === 'guess') {
         ':won'   => $isCorrect ? 1 : 0,
         ':id'    => $gameId
     ]);
+    creditLeaderboard($pdo, $shared, $game, $runningTotalScore, (int)$game['hints_used'], $attempts, (bool)$isFinished);
 
     echo json_encode([
         'valid' => true,
@@ -444,69 +497,15 @@ if ($action === 'guess') {
 }
 
 // --- GEM POINT TIL LEADERBOARD ---
+//
+// Pointene føres over løbende (se creditLeaderboard). save_score er kun
+// tilbage, så sider der stadig ligger i browserens cache ikke får en fejl.
 
 if ($action === 'save_score') {
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Ikke logget ind']);
-        exit;
-    }
-
-    $input = json_decode(file_get_contents('php://input'), true);
-    $gameId = $input['game_id'] ?? '';
-    $userId = $_SESSION['user_id'];
-    $username = $_SESSION['username'] ?? 'Anonym';
-
-    // VIGTIGT: $score kommer IKKE fra klienten. Den hentes udelukkende fra
-    // games-tabellen, som kun serveren selv skriver til.
-    $stmt = $pdo->prepare("
-        SELECT total_score, won, is_finished, score_saved, user_id, hints_used
-        FROM games
-        WHERE game_id = :id
-    ");
-    $stmt->execute([':id' => $gameId]);
-    $game = $stmt->fetch();
-
-    if (!$game) {
-        echo json_encode(['success' => false, 'message' => 'Ugyldigt spil']);
-        exit;
-    }
-    if (!$game['is_finished']) {
-        echo json_encode(['success' => false, 'message' => 'Spillet er ikke afsluttet endnu']);
-        exit;
-    }
-    if ($game['score_saved']) {
-        // Forhindrer at samme game_id genindsendes for at score point flere gange.
-        echo json_encode(['success' => false, 'message' => 'Denne runde er allerede gemt']);
-        exit;
-    }
-    if ($game['user_id'] !== null && (int)$game['user_id'] !== (int)$userId) {
-        echo json_encode(['success' => false, 'message' => 'Dette spil tilhører en anden bruger']);
-        exit;
-    }
-
-    // Kun point hvis spillet blev vundet - og aldrig under 0, selv hvis hints
-    // har kostet mere end gættene gav.
-    $score = $game['won'] ? max(0, (int)$game['total_score']) : 0;
-    $hints = (int)$game['hints_used'];
-
-    $stmt = $pdo->prepare("
-        INSERT INTO leaderboard (id, username, games_played, total_score, avg_score, high_score, hints_used, last_game_at)
-        VALUES (:uid, :u, 1, :score, :score, :score, :hints, NOW())
-        ON DUPLICATE KEY UPDATE
-            username = VALUES(username),
-            last_game_at = NOW(),
-            games_played = games_played + 1,
-            total_score = total_score + VALUES(total_score),
-            hints_used = hints_used + VALUES(hints_used),
-            avg_score = (total_score + VALUES(total_score)) / (games_played + 1),
-            high_score = GREATEST(high_score, VALUES(total_score))
-    ");
-    $stmt->execute([':uid' => $userId, ':u' => $username, ':score' => $score, ':hints' => $hints]);
-
-    $stmtMark = $pdo->prepare("UPDATE games SET score_saved = 1 WHERE game_id = :id");
-    $stmtMark->execute([':id' => $gameId]);
-
-    echo json_encode(['success' => true, 'score' => $score]);
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $stmt = $pdo->prepare("SELECT total_score FROM games WHERE game_id = :id");
+    $stmt->execute([':id' => $input['game_id'] ?? '']);
+    echo json_encode(['success' => true, 'score' => max(0, (int)$stmt->fetchColumn())]);
     exit;
 }
 
@@ -588,6 +587,7 @@ if ($action === 'get_random_word') {
         $stmtUpdate = $pdo->prepare("UPDATE games SET hints_used = hints_used + 1 WHERE game_id = :id");
         $stmtUpdate->execute([':id' => $gameId]);
         $totalScore = (int)$game['total_score'];
+        creditLeaderboard($pdo, $shared, $game, $totalScore, (int)$game['hints_used'] + 1, (int)$game['attempts'], false);
     }
 
     echo json_encode(['word' => $selectedWord, 'total_score' => $totalScore]);
@@ -598,13 +598,17 @@ if ($action === 'abandon') {
     $input = json_decode(file_get_contents('php://input'), true);
     $gameId = $input['game_id'] ?? '';
 
-    $stmt = $pdo->prepare("SELECT secret_word FROM games WHERE game_id = :id");
+    $stmt = $pdo->prepare("SELECT * FROM games WHERE game_id = :id");
     $stmt->execute([':id' => $gameId]);
     $game = $stmt->fetch();
 
     if ($game) {
-        $stmtUpdate = $pdo->prepare("UPDATE games SET is_finished = 1 WHERE game_id = :id");
-        $stmtUpdate->execute([':id' => $gameId]);
+        if (!$game['is_finished']) {
+            $stmtUpdate = $pdo->prepare("UPDATE games SET is_finished = 1 WHERE game_id = :id");
+            $stmtUpdate->execute([':id' => $gameId]);
+            // Pointene er allerede ført over; her sættes kun high_score.
+            creditLeaderboard($pdo, $shared, $game, (int)$game['total_score'], (int)$game['hints_used'], (int)$game['attempts'], true);
+        }
 
         echo json_encode(['success' => true, 'secret_word' => $game['secret_word']]);
     } else {
@@ -630,7 +634,7 @@ if ($action === 'get_matching_words' || $action === 'count_matching_words') {
     // Kun løsningsord (status = 'common') - samme ord som prisen er beregnet ud fra.
     $constraints = buildConstraintsFromGuesses(mb_strtoupper($game['secret_word'], 'UTF-8'), $game['history']);
     $words = getMatchingWords($pdo, $constraints, true);
-    $price = hintPrice(count($words), count($game['history']), (int)$game['total_score']);
+    $price = hintPrice(count($words), count($game['history']));
 
     if ($action === 'count_matching_words') {
         // Kun forhåndsvisning - trækker ikke point.
@@ -640,6 +644,7 @@ if ($action === 'get_matching_words' || $action === 'count_matching_words') {
 
     $stmtUpdate = $pdo->prepare("UPDATE games SET total_score = total_score - :price, hints_used = hints_used + 1 WHERE game_id = :id");
     $stmtUpdate->execute([':price' => $price, ':id' => $game['game_id']]);
+    creditLeaderboard($pdo, $shared, $game, (int)$game['total_score'] - $price, (int)$game['hints_used'] + 1, (int)$game['attempts'], false);
 
     echo json_encode([
         'words' => $words,
