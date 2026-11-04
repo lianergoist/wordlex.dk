@@ -46,3 +46,7 @@ tools/                     Database migrations and other one-off scripts
 - Three databases are used: a shared one (users and dictionary) and one for each version of the game.
 - In the live environment, `wordlex.dk` uses the whole repository as DocumentRoot, while `w5.wordlex.dk` and
   `w6.wordlex.dk` point to `w5/` and `w6/`. Login is shared via the cookie domain `.wordlex.dk`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

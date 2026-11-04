@@ -45,3 +45,7 @@ tools/                     Databasemigreringer og andre engangsscripts
 - Der bruges tre databaser: en fælles (brugere og ordbog) og én for hver udgave af spillet.
 - I live-miljøet er `wordlex.dk` DocumentRoot for hele repoet, mens `w5.wordlex.dk` og `w6.wordlex.dk`
   peger på `w5/` og `w6/`. Login deles via cookie-domænet `.wordlex.dk`.
+
+## Licens
+
+MIT, se [LICENSE](LICENSE).
