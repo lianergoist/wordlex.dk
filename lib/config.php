@@ -1,25 +1,11 @@
 <?php
 // lib/config.php - fælles konfiguration for spil, ordbog og admin.
-//
-// Miljøet afgøres af hvor koden ligger:
-//   dev  - /var/www/rpix.dk/wordlex.dk  (https://rpix.dk/wordlex.dk/, dev-databaser)
-//   live - /var/www/wordlex.dk          (wordlex.dk + w5./w6.wordlex.dk, de rigtige data)
 
-if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
-    define('WORDLEX_ENV', 'dev');
-    define('SHARED_DB', 'wordlex_dev');
-    define('VARIANT_DBS', [5 => 'wordlex5_dev', 6 => 'wordlex6_dev']);
-    define('COOKIE_DOMAIN', '');           // samme host for spil og ordbog
-    define('SITE_URL', 'https://rpix.dk/wordlex.dk/');
-    define('GAME_URLS', [5 => SITE_URL . 'w5/', 6 => SITE_URL . 'w6/']);
-} else {
-    define('WORDLEX_ENV', 'live');
-    define('SHARED_DB', 'wordlex');
-    define('VARIANT_DBS', [5 => 'wordlex5_v2', 6 => 'wordlex6_v2']);
-    define('COOKIE_DOMAIN', '.wordlex.dk'); // login deles mellem w5., w6. og wordlex.dk
-    define('SITE_URL', 'https://wordlex.dk/');
-    define('GAME_URLS', [5 => 'https://w5.wordlex.dk/', 6 => 'https://w6.wordlex.dk/']);
-}
+define('SHARED_DB', 'wordlex');
+define('VARIANT_DBS', [5 => 'wordlex5_v2', 6 => 'wordlex6_v2']);
+define('COOKIE_DOMAIN', '.wordlex.dk'); // login deles mellem w5., w6. og wordlex.dk
+define('SITE_URL', 'https://wordlex.dk/');
+define('GAME_URLS', [5 => 'https://w5.wordlex.dk/', 6 => 'https://w6.wordlex.dk/']);
 define('WIKI_URL', SITE_URL . 'ord/');
 
 // --- VÆRN MOD HÆRVÆRK I ORDBOGEN (gælder ikke admin) ---
