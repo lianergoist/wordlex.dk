@@ -3,12 +3,7 @@
 //
 // Miljøet afgøres af hvor koden ligger:
 //   dev  - /var/www/rpix.dk/wordlex.dk  (https://rpix.dk/wordlex.dk/, dev-databaser)
-//   test - /var/www/test.wordlex.dk     (https://test.wordlex.dk/, de rigtige data)
 //   live - /var/www/wordlex.dk          (wordlex.dk + w5./w6.wordlex.dk, de rigtige data)
-// Test og live deler databaser, så alt hvad spillerne laver på test-siden
-// er med, når den nye version overtager wordlex.dk.
-
-const LIVE_DBS = ['shared' => 'wordlex', 5 => 'wordlex5_v2', 6 => 'wordlex6_v2'];
 
 if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
     define('WORDLEX_ENV', 'dev');
@@ -17,17 +12,10 @@ if (strpos(__DIR__, '/var/www/rpix.dk/') === 0) {
     define('COOKIE_DOMAIN', '');           // samme host for spil og ordbog
     define('SITE_URL', 'https://rpix.dk/wordlex.dk/');
     define('GAME_URLS', [5 => SITE_URL . 'w5/', 6 => SITE_URL . 'w6/']);
-} elseif (strpos(__DIR__, '/var/www/test.wordlex.dk/') === 0) {
-    define('WORDLEX_ENV', 'test');
-    define('SHARED_DB', LIVE_DBS['shared']);
-    define('VARIANT_DBS', [5 => LIVE_DBS[5], 6 => LIVE_DBS[6]]);
-    define('COOKIE_DOMAIN', '');
-    define('SITE_URL', 'https://test.wordlex.dk/');
-    define('GAME_URLS', [5 => SITE_URL . 'w5/', 6 => SITE_URL . 'w6/']);
 } else {
     define('WORDLEX_ENV', 'live');
-    define('SHARED_DB', LIVE_DBS['shared']);
-    define('VARIANT_DBS', [5 => LIVE_DBS[5], 6 => LIVE_DBS[6]]);
+    define('SHARED_DB', 'wordlex');
+    define('VARIANT_DBS', [5 => 'wordlex5_v2', 6 => 'wordlex6_v2']);
     define('COOKIE_DOMAIN', '.wordlex.dk'); // login deles mellem w5., w6. og wordlex.dk
     define('SITE_URL', 'https://wordlex.dk/');
     define('GAME_URLS', [5 => 'https://w5.wordlex.dk/', 6 => 'https://w6.wordlex.dk/']);
@@ -38,7 +26,7 @@ define('WIKI_URL', SITE_URL . 'ord/');
 // Alle med en konto må redigere, også efter 1. november 2026. Giver det
 // problemer, kan MIN_GAMES_TO_EDIT sættes op (fx 10) – teksterne følger med.
 define('MIN_GAMES_TO_EDIT', 0);        // afsluttede spil (begge udgaver tilsammen)
-define('MAX_EDITS_PER_DAY', WORDLEX_ENV === 'test' ? 100 : 20); // ændringer + nye ord pr. døgn
+define('MAX_EDITS_PER_DAY', 20); // ændringer + nye ord pr. døgn
 
 // Antal forsøg pr. ordlængde
 const VARIANT_ROWS = [5 => 6, 6 => 7];
