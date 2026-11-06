@@ -2,19 +2,18 @@
 // Migration 001: fælles brugere, ordstatus og ordbogens tabeller.
 //
 // Skriver SQL til stdout - kør den med en MySQL-konto der må ændre tabeller:
-//   php tools/migrate_001_shared_users_and_word_status.php dev  | mysql
 //   php tools/migrate_001_shared_users_and_word_status.php live | mysql
 //
-// 'live' kører på kopier af de gamle databaser (wordlex5 -> wordlex5_v2,
-// wordlex6 -> wordlex6_v2), så den gamle side kan køre videre uændret.
+// Den kører på kopier af de gamle databaser (wordlex5 -> wordlex5_v2,
+// wordlex6 -> wordlex6_v2), så den gamle side kunne køre videre uændret.
 //
 // Stopper den undervejs, kan den fortsætte fra et trin (se "-- TRIN:" i
 // outputtet), fx:
-//   php tools/migrate_001_shared_users_and_word_status.php dev remap | mysql
+//   php tools/migrate_001_shared_users_and_word_status.php live remap | mysql
 //
-// Den fælles database (dev: wordlex_dev, live: wordlex) skal være oprettet,
-// og spillets MySQL-bruger skal have SELECT/INSERT/UPDATE/DELETE på den.
-// Migrationen kan kun køres én gang pr. miljø.
+// Den fælles database (wordlex) skal være oprettet, og spillets MySQL-bruger
+// skal have SELECT/INSERT/UPDATE/DELETE på den.
+// Migrationen kan kun køres én gang.
 //
 // Hvad den gør:
 //   1. Opretter users, word_edits, word_locks og reports i den fælles database.
@@ -26,23 +25,18 @@
 //   5. Omdøber de gamle users-tabeller til users_old (backup).
 //   6. Erstatter words.is_common med words.status (common/rare/deleted).
 //   7. Gør lianergoist (id 3) til admin.
-//   8. Kun live: nulstiller leaderboardet (nyt pointsystem).
+//   8. Nulstiller leaderboardet (nyt pointsystem).
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
 }
 
-$env = $argv[1] ?? '';
-$names = [
-    'dev'  => ['wordlex_dev', 'wordlex5_dev', 'wordlex6_dev'],
-    'live' => ['wordlex', 'wordlex5_v2', 'wordlex6_v2'],
-];
-if (!isset($names[$env])) {
-    fwrite(STDERR, "Brug: php " . basename(__FILE__) . " dev|live [starttrin]\n");
+if (($argv[1] ?? '') !== 'live') {
+    fwrite(STDERR, "Brug: php " . basename(__FILE__) . " live [starttrin]\n");
     exit(1);
 }
-[$S, $D5, $D6] = $names[$env];
+[$S, $D5, $D6] = ['wordlex', 'wordlex5_v2', 'wordlex6_v2'];
 $fromStep = $argv[2] ?? null;
 
 $sql = <<<SQL
@@ -157,18 +151,12 @@ ALTER TABLE `$D6`.words ADD COLUMN status ENUM('common','rare','deleted') NOT NU
 UPDATE `$D6`.words SET status = IF(is_common = 1, 'common', 'rare');
 ALTER TABLE `$D6`.words DROP COLUMN is_common;
 
-SQL;
-
-// Nyt pointsystem = nyt leaderboard (dev blev nulstillet separat)
-if ($env === 'live') {
-    $sql .= <<<SQL
-
 -- TRIN: reset_leaderboard
+-- Nyt pointsystem = nyt leaderboard
 UPDATE `$D5`.leaderboard SET games_played = 0, total_score = 0, avg_score = 0, high_score = 0, hints_used = 0;
 UPDATE `$D6`.leaderboard SET games_played = 0, total_score = 0, avg_score = 0, high_score = 0, hints_used = 0;
 
 SQL;
-}
 
 if ($fromStep !== null) {
     $pos = strpos($sql, "-- TRIN: $fromStep\n");
@@ -179,4 +167,4 @@ if ($fromStep !== null) {
     $sql = substr($sql, $pos);
 }
 
-echo "-- Migration 001 ($env)\n\n" . $sql;
+echo "-- Migration 001 (live)\n\n" . $sql;
