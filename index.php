@@ -246,7 +246,7 @@ $games = [
 	</script>
 
 	<footer>
-		<span>Idé og vibe-kode: Thomas Jensen</span><span class="sep"> · </span><span>Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a></span><span class="sep"> · </span><span><a href="<?= h(SITE_URL) ?>statistik.php">Statistik - spil og spillere</a></span>
+		<span>Idé og vibe-kode: Thomas Jensen</span><span class="sep"> · </span><span>Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a></span><span class="sep"> · </span><span><a href="<?= h(SITE_URL) ?>statistik.php">Statistik - spil og spillere</a></span><span class="sep"> · </span><span><a href="https://github.com/lianergoist/wordlex.dk">Kildekode på GitHub</a></span>
 	</footer>
 </body>
 </html>
