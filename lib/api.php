@@ -541,7 +541,7 @@ if ($action === 'leaderboard') {
     $stmtHigh = $pdo->query("
         SELECT l.username, l.games_played, l.high_score, l.avg_score, l.total_score
         FROM leaderboard l
-        WHERE l.games_played > 0 AND l.last_game_at > NOW() - INTERVAL 2 WEEK
+        WHERE l.high_score > 0 AND l.last_game_at > NOW() - INTERVAL 2 WEEK
         ORDER BY l.high_score DESC, l.total_score DESC
         LIMIT 100
     ");
