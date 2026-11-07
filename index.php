@@ -228,7 +228,7 @@ $games = [
 		<h3>Om WordleX</h3>
 		<p>WordleX er dansk Wordle med point, Top-100 og en ordliste, som spillerne selv er med til at styre.</p>
 		<p>Idé og vibe-kode: Thomas Jensen</p>
-		<p>Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a></p>
+		<p>Kontakt: <a href="mailto:info@wordlex.dk">info@wordlex.dk</a></p>
 		<div class="modal-buttons"><button class="btn" onclick="closeModal()">Luk</button></div>
 	</template>
 
@@ -246,7 +246,7 @@ $games = [
 	</script>
 
 	<footer>
-		<span>Idé og vibe-kode: Thomas Jensen</span><span class="sep"> · </span><span>Kontakt: <a href="mailto:wordlex@rpix.dk">wordlex@rpix.dk</a></span><span class="sep"> · </span><span><a href="<?= h(SITE_URL) ?>statistik.php">Statistik - spil og spillere</a></span><span class="sep"> · </span><span><a href="https://github.com/lianergoist/wordlex.dk">Kildekode på GitHub</a></span>
+		<span>Idé og vibe-kode: Thomas Jensen</span><span class="sep"> · </span><span>Kontakt: <a href="mailto:info@wordlex.dk">info@wordlex.dk</a></span><span class="sep"> · </span><span><a href="<?= h(SITE_URL) ?>statistik.php">Statistik - spil og spillere</a></span><span class="sep"> · </span><span><a href="https://github.com/lianergoist/wordlex.dk">Kildekode på GitHub</a></span>
 	</footer>
 </body>
 </html>
